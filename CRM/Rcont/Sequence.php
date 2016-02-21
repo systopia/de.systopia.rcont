@@ -27,6 +27,7 @@ class CRM_Rcont_Sequence {
   protected $cycle_day_offset_sum     = 0;
   protected $contribution_sequence    = array();
   protected $cycle_tolerance          = '6 days';
+  protected $hash                     = '';
 
   public static $identical_fields  = array(
     'financial_type_id'     => 'financial_type_id',
@@ -69,7 +70,7 @@ class CRM_Rcont_Sequence {
     // now: check if all values are identical
     foreach ($this->identical_fields as $field_name) {
       if ($contribution[$field_name] != $this->most_recent_contribution[$field_name]) {
-        error_log("FIELD MISMATCH");
+        // error_log("FIELD MISMATCH");
         return FALSE;
       }
     }
@@ -118,6 +119,7 @@ class CRM_Rcont_Sequence {
     // error_log("ADDED");
 
     // add
+    $this->hash = sha1($this->hash . $contribution['id']);
     $this->contribution_sequence[] = $contribution;
     $this->expected_receive_date = NULL;
   }
@@ -186,6 +188,7 @@ class CRM_Rcont_Sequence {
 
     $frequency = explode(' ', $this->cycle);
     $recurring_contribution = array(
+      'hash'               => $this->hash,
       'contribution_count' => count($this->contribution_sequence),
       'cycle_day'          => $best_cycle_day,
       'frequency_unit'     => $frequency[1],

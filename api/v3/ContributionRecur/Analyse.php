@@ -31,7 +31,8 @@ function civicrm_api3_contribution_recur_analyse($params) {
     while ($countdown > 0) {
       // do the query every time, maybe there is another thread...
       $last_contact_id = (int) CRM_Core_BAO_Setting::getItem('de.systopia.rcont', 'bulk_last_contact_id');
-      $next_contact_id = CRM_Core_DAO::singleValueQuery('SELECT id FROM civicrm_contact WHERE id > $last_contact_id AND is_deleted <> 1;');
+      if (empty($last_contact_id)) $last_contact_id = 0;
+      $next_contact_id = CRM_Core_DAO::singleValueQuery("SELECT id FROM civicrm_contact WHERE id > $last_contact_id AND is_deleted <> 1;");
       if (empty($next_contact_id)) break;
 
       // look into this contact

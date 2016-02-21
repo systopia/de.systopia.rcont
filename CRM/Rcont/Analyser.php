@@ -29,6 +29,14 @@ class CRM_Rcont_Analyser {
     'fee_amount'            => 'fee_amount',
     'net_amount'            => 'net_amount');
 
+  public static $comparisonWeights  = array(
+    'financial_type_id'     => 20,
+    'cycle_day'             => 15,
+    'campaign_id'           => 15,
+    'amount'                => 20,  // will be multiplied by percentage
+    'currency'              => 100,
+    'frequency_interval'    => 100,
+    'frequency_unit'        => 100);
 
   /** 
    * analyse the given contact for recurring contributions
@@ -53,20 +61,41 @@ class CRM_Rcont_Analyser {
 
     // calculat recurring contributions
     $extracted_contributions = CRM_Rcont_Analyser::extractRecurringContributions($contact_id, $params);
-    error_log("CALCULATED: ".print_r($extracted_contributions,1));
+    // error_log("CALCULATED: ".print_r($extracted_contributions,1));
 
     // get existing contributions
     $existing_contributions = CRM_Rcont_Analyser::currentRecurringContributions($contact_id, $params);
-    error_log("ACTUAL: ".print_r($existing_contributions,1));
+    // error_log("ACTUAL: ".print_r($existing_contributions,1));
 
     // match extracted with existing contribtions
-    // $changes = CRM_Rcont_Analyser::matchRecurringContributions($existing_contributions, $extracted_contributions);
+    $changes = CRM_Rcont_Analyser::matchRecurringContributions($existing_contributions, $extracted_contributions);
+    // error_log("PROPOSED CHANGES: ".print_r($changes,1));
       
     // TODO: apply changes
 
     // if (!empty($params['logfile'])) {
       // TODO: logging
     // }
+    if (!empty($changes)) {
+      $log_entry = "Contact [$contact_id]:\n";
+      foreach ($changes as $change) {
+        if ($change['from'] == NULL) {
+          $message = "Create new recurring contribution: " . self::recurringContributiontoString($change['to']);
+        } elseif ($change['to'] == NULL) {
+          $message = "End/delete recurring contribution: " . self::recurringContributiontoString($change['from']);
+        } elseif ($change['match']) {
+          $old = self::recurringContributiontoString($change['from']);
+          $message = "Confirmed recurring contribution [{$change['from']['id']}] ($old)"; 
+        } else {
+          $old = self::recurringContributiontoString($change['from']);
+          $new = self::recurringContributiontoString($change['to']);
+          $message = "Update recurring contribution [{$change['from']['id']}]: $old => $new"; 
+        }
+        $log_entry .= $message . "\n";
+      }
+      $log_entry .= "\n";
+      file_put_contents('/tmp/rcontribution_survey.log', $log_entry, FILE_APPEND);
+    }
     
     return $changes;
   }
@@ -176,5 +205,104 @@ class CRM_Rcont_Analyser {
       $recurring_contributions[] = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $query->id));
     }
     return $recurring_contributions;
+  }
+
+
+  /**
+   * create a matching between the existing and the calculated contributions
+   */
+  public static function matchRecurringContributions($existing_contributions, $extracted_contributions) {
+    // first step: find similarities
+    $similarities = array();
+    foreach ($existing_contributions as $existing_contribution) {
+      foreach ($extracted_contributions as $extracted_contribution) {
+        $similarity = self::calculateSimilarity($existing_contribution, $extracted_contribution);
+        // error_log($similarity);
+        $similarities[] = array('existing'   => $existing_contribution,
+                                'extracted'  => $extracted_contribution,
+                                'similarity' => $similarity);
+        $similarities[] = array('existing'   => $existing_contribution,
+                                'extracted'  => $extracted_contribution,
+                                'similarity' => $similarity - 10);
+      }
+    }
+    usort($similarities, "CRM_Rcont_Analyser::compareSimilarityEntries");
+    // error_log(print_r($similarities,1));
+
+    // second step, accept matches with good enough ratings
+    $matches = array();
+    $matched_rcontributions = array();
+    $threshold = 70;
+    foreach ($similarities as $match) {
+      // stop if $threshold is not matched:
+      if ($match['similarity'] < $threshold) break;
+
+      // check if haven't already been matched
+      $fp1 = sha1(json_encode($match['existing']));
+      if (in_array($fp1, $matched_rcontributions)) continue;
+      $fp2 = sha1(json_encode($match['extracted']));
+      if (in_array($fp2, $matched_rcontributions)) continue;
+
+      // all good: record as match
+      $matches[] = array('from'  => $match['existing'],
+                         'to'    => $match['extracted'],
+                         'match' => ($similarity==100));
+
+      // ...and mark both as matched
+      $matched_rcontributions[] = $fp1;
+      $matched_rcontributions[] = $fp2;
+    }
+
+    // now, put the remaining ones
+    foreach ($existing_contributions as $existing_contribution) {
+      $fp = sha1(json_encode($existing_contribution));
+      if (!in_array($fp, $matched_rcontributions)) {
+        $matches[] = array('from' => $existing_contribution,
+                           'to'   => NULL);
+      }
+    }
+
+    foreach ($extracted_contributions as $extracted_contribution) {
+      $fp = sha1(json_encode($extracted_contribution));
+      if (!in_array($fp, $matched_rcontributions)) {
+        $matches[] = array('from' => NULL,
+                           'to'   => $extracted_contribution);
+      }
+    }
+
+    return $matches;
+  }
+
+  /**
+   * calculate similarity between two recurring contributions
+   */
+  public static function calculateSimilarity($rcontribution1, $rcontribution2) {
+    $similarity = 100;
+    foreach ($comparisonWeights as $attribute => $weight) {
+      if ($attribute == 'amount') {
+        // amount penalty gets multiplied by percentage of decrease
+        $increase = $contribution1['amount'] / $contribution2['amount'];
+        $factor = abs($increase - 1.0);
+        $similarity -= $weight * $factor;
+      } else {
+        if ($rcontribution1[$attribute] != $rcontribution2[$attribute]) {
+          $similarity -= $weight;
+        }
+      }
+    }
+    return $similarity;
+  }
+
+  /** Generate string representation of the recurring contribution */
+  public static function recurringContributiontoString($rcontribution) {
+    return "{$rcontribution['amount']}/{$rcontribution['frequency_interval']}_{$rcontribution['frequency_unit']}@{$rcontribution['cycle_day']}.({$rcontribution['financial_type_id']},{$rcontribution['campaign_id']})";
+  }
+
+  public static function compareSimilarityEntries($entry1, $entry2) {
+    if ($entry1['similarity'] == $entry2['similarity']) {
+      return 0;
+    } else {
+      return ($entry1['similarity'] < $entry2['similarity']) ? 1 : -1;
+    }
   }
 }
