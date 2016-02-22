@@ -33,7 +33,7 @@ class CRM_Rcont_Analyser {
     'financial_type_id'     => 20,
     'cycle_day'             => 15,
     'campaign_id'           => 15,
-    'amount'                => 20,  // will be multiplied by percentage
+    'amount'                => 15,  // will be multiplied by percentage
     'currency'              => 100,
     'frequency_interval'    => 100,
     'frequency_unit'        => 100);
@@ -197,6 +197,7 @@ class CRM_Rcont_Analyser {
     $sql = "SELECT id FROM civicrm_contribution_recur 
             WHERE `contact_id` = $contact_id 
               AND (`end_date` IS NULL OR `end_date` >= DATE('$last_sequence_start'))
+              AND (`contribution_status_id` IN (1,2,5))
               AND ($interval_sql);";
     $query = CRM_Core_DAO::executeQuery($sql);
 
@@ -278,10 +279,10 @@ class CRM_Rcont_Analyser {
    */
   public static function calculateSimilarity($rcontribution1, $rcontribution2) {
     $similarity = 100;
-    foreach ($comparisonWeights as $attribute => $weight) {
+    foreach (self::$comparisonWeights as $attribute => $weight) {
       if ($attribute == 'amount') {
         // amount penalty gets multiplied by percentage of decrease
-        $increase = $contribution1['amount'] / $contribution2['amount'];
+        $increase = $rcontribution2['amount'] / $rcontribution1['amount'];
         $factor = abs($increase - 1.0);
         $similarity -= $weight * $factor;
       } else {

@@ -176,6 +176,8 @@ class CRM_Rcont_Sequence {
       $optimisedOffset = $this->minimum_cycle_day_offset + $cycle_tolerance;
     }
     $best_cycle_day = $this->cycle_day + round(($optimisedOffset / 60 / 60 / 24));
+    if ($best_cycle_day > 30) $best_cycle_day -= 30;
+    if ($best_cycle_day < 1)  $best_cycle_day += 30;
 
     // adjust cycle day within limits
     // TODO:
