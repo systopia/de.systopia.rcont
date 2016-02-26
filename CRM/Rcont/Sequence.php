@@ -22,9 +22,10 @@ class CRM_Rcont_Sequence {
   protected $cycle;
   protected $most_recent_contribution;
   protected $cycle_day                = NULL;
-  protected $minimum_cycle_day_offset = 0;
-  protected $maximum_cycle_day_offset = 0;
-  protected $cycle_day_offset_sum     = 0;
+  // protected $minimum_cycle_day_offset = 0;
+  // protected $maximum_cycle_day_offset = 0;
+  // protected $cycle_day_offset_sum     = 0;
+  protected $cycle_day_offset_list    = array();
   protected $contribution_sequence    = array();
   protected $cycle_tolerance          = '6 days';
   protected $hash                     = '';
@@ -48,12 +49,14 @@ class CRM_Rcont_Sequence {
     $this->most_recent_contribution = $contribution;
     $this->contribution_sequence[] = $contribution;
     $this->cycle_day = date('d', strtotime($contribution['receive_date']));
+    $this->cycle_day_offset_list[] = 0;
   }
 
   /**
    * check if the sequence has enough entries to be considered a real sequence
    */
   public function isSequence($minimum_count = 5) {
+    error_log($minimum_count);
     return count($this->contribution_sequence) >= $minimum_count;
   }
 
@@ -99,11 +102,13 @@ class CRM_Rcont_Sequence {
     // update cycle day stats
     $expected_receive_date = $this->expectedReceiveDate();
     $this_receive_date = strtotime($contribution['receive_date']);
-    $offset = ($this_receive_date - $expected_receive_date);
-    if ($offset < $this->minimum_cycle_day_offset) $this->minimum_cycle_day_offset = $offset;
-    if ($offset > $this->maximum_cycle_day_offset) $this->maximum_cycle_day_offset = $offset;
-    $this->cycle_day_offset_sum += $offset;
-
+    // $offset = ($this_receive_date - $expected_receive_date);
+    // if ($offset < $this->minimum_cycle_day_offset) $this->minimum_cycle_day_offset = $offset;
+    // if ($offset > $this->maximum_cycle_day_offset) $this->maximum_cycle_day_offset = $offset;
+    // $this->cycle_day_offset_sum += $offset;
+    $offset = round(($this_receive_date - $expected_receive_date) / 60 / 60 / 24);
+    $this->cycle_day_offset_list[] = $offset;
+// TODO: use median, not average. 
     // $cycle_day = date('d', strtotime($contribution['receive_date']));
     // if ($cycle_day != $this->cycle_day) {
     //   // re-calculate cycle day
@@ -167,20 +172,25 @@ class CRM_Rcont_Sequence {
     $last_contribution  = end($this->contribution_sequence);
 
     // calculate 'better' cycle day with the stats
-    $optimisedOffset = ($this->cycle_day_offset_sum / count($this->contribution_sequence));
-    // this would be the ideal one, but we have to make sure we don't 
+    // $optimisedOffset = ($this->cycle_day_offset_sum / count($this->contribution_sequence));
+    // // this would be the ideal one, but we have to make sure we don't 
+    // //  violate the tolerance when moving
+    // if ($this->maximum_cycle_day_offset - $optimisedOffset > $cycle_tolerance) {
+    //   $optimisedOffset = $this->maximum_cycle_day_offset - $cycle_tolerance;
+    // } elseif ($optimisedOffset - $this->minimum_cycle_day_offset > $cycle_tolerance) {
+    //   $optimisedOffset = $this->minimum_cycle_day_offset + $cycle_tolerance;
+    // }
+    // $best_cycle_day = $this->cycle_day + round(($optimisedOffset / 60 / 60 / 24));
+
+    // use median offset to calculate 'better' cycle day
+    sort($this->cycle_day_offset_list);
+    $median_offset = $this->cycle_day_offset_list[count($this->cycle_day_offset_list) / 2];
+    $best_cycle_day = $this->cycle_day + $median_offset);
+    // TODO: this would be the ideal one, but we have to make sure we don't 
     //  violate the tolerance when moving
-    if ($this->maximum_cycle_day_offset - $optimisedOffset > $cycle_tolerance) {
-      $optimisedOffset = $this->maximum_cycle_day_offset - $cycle_tolerance;
-    } elseif ($optimisedOffset - $this->minimum_cycle_day_offset > $cycle_tolerance) {
-      $optimisedOffset = $this->minimum_cycle_day_offset + $cycle_tolerance;
-    }
-    $best_cycle_day = $this->cycle_day + round(($optimisedOffset / 60 / 60 / 24));
     if ($best_cycle_day > 30) $best_cycle_day -= 30;
     if ($best_cycle_day < 1)  $best_cycle_day += 30;
 
-    // adjust cycle day within limits
-    // TODO:
 
     // $cycle_day_sum = 0;
     // foreach ($this->contribution_sequence as $contribution) {
