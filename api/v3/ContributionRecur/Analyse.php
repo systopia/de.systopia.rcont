@@ -63,6 +63,12 @@ function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
   $params['logfile'] = array('api.required' => 0);
 
   // reset the last visited ID
-  $params['reset'] = array('api.required' => 0);
+  $params['reset'] = array('api.required' => 0,
+                           'api.default' => 0);
 
+  // restrict to the given payment instruments. 
+  $params['payment_instrument_ids'] = array('api.required' => 0);
+
+  // restrict to the given payment instruments. 
+  $params['financial_type_ids'] = array('api.required' => 0);
 }
