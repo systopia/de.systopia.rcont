@@ -22,7 +22,7 @@ class CRM_Rcont_Analyser {
     'id'                    => 'id',
     'financial_type_id'     => 'financial_type_id',
     'campaign_id'           => 'campaign_id',
-    'payment_instrument_id' => 'payment_instrument_id',
+    // 'payment_instrument_id' => 'payment_instrument_id',
     'contact_id'            => 'contact_id',
     'amount'                => 'total_amount',
     'currency'              => 'currency',
@@ -110,6 +110,8 @@ class CRM_Rcont_Analyser {
     $horizon = $params['horizon'];
     $intervals = $params['intervals'];
     $last_sequence_start = strtotime("-$horizon");
+    $financial_type_clause     = self::getSQLClause($params, 'financial_type_ids', 'financial_type_id');
+    $payment_instrument_clause = self::getSQLClause($params, 'payment_instrument_ids', 'payment_instrument_id');
 
     // this will contain all the already matched contributions
     $matched_contributions   = array();
@@ -125,6 +127,8 @@ class CRM_Rcont_Analyser {
               WHERE contact_id = $contact_id 
                 AND (is_test = 0 OR is_test IS NULL)
                 AND contribution_status_id = 1
+                AND $financial_type_clause
+                AND $payment_instrument_clause
               ORDER BY receive_date DESC;";
       $query = CRM_Core_DAO::executeQuery($sql);
 
@@ -184,6 +188,7 @@ class CRM_Rcont_Analyser {
    */
   public static function currentRecurringContributions($contact_id, $params) {
     $recurring_contributions = array();
+    $horizon = $params['horizon'];
 
     // build SQL query
     $last_sequence_start = date('Y-m-d', strtotime("-$horizon"));
@@ -296,7 +301,21 @@ class CRM_Rcont_Analyser {
 
   /** Generate string representation of the recurring contribution */
   public static function recurringContributiontoString($rcontribution) {
-    return "{$rcontribution['amount']}/{$rcontribution['frequency_interval']}_{$rcontribution['frequency_unit']}@{$rcontribution['cycle_day']}.({$rcontribution['financial_type_id']},{$rcontribution['campaign_id']})";
+    $financial_types = CRM_Contribute_PseudoConstant::financialType();
+    $financial_type = $financial_types[$rcontribution['financial_type_id']];
+    if (empty($rcontribution['campaign_id'])) {
+      $campaign = 'NO_CAMPAIGN';
+    } else {
+      $entity = civicrm_api3('Campaign', 'getsingle', array('id' => $rcontribution['campaign_id']));
+      $campaign = $entity['title'];
+    }
+    if (empty($rcontribution['contribution_count'])) {
+      $counter = "[{$rcontribution['contribution_count']}x]";
+    } else {
+      $counter = "[n/a]";
+    }
+
+    return "{$rcontribution['amount']}/{$rcontribution['frequency_interval']}_{$rcontribution['frequency_unit']}@{$rcontribution['cycle_day']}.({$financial_type},{$campaign})$counter";
   }
 
   public static function compareSimilarityEntries($entry1, $entry2) {
@@ -305,5 +324,28 @@ class CRM_Rcont_Analyser {
     } else {
       return ($entry1['similarity'] < $entry2['similarity']) ? 1 : -1;
     }
+  }
+
+  public static function getSQLClause($params, $key, $table_name) {
+    $sql_clause = 'TRUE';
+    if (!empty($params[$key])) {
+      // make sure it's only integers
+      if (is_array($params[$key])) {
+        $raw_entries = $params[$key];
+      } else {
+        $raw_entries = explode(',', $params[$key]);
+      }
+      $entries = array();
+      foreach ($raw_entries as $entry) {
+        if ((int) $entry > 0) {
+          $entries[] = (int) $entry;
+        }
+      }
+      if (!empty($entries)) {
+        $idstring = implode(',', $entries);
+        $sql_clause = "(`$table_name` IN ($idstring))";
+      }
+    }
+    return $sql_clause;
   }
 }
