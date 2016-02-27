@@ -178,7 +178,7 @@ class CRM_Rcont_Sequence {
   /**
    * extract a recurring contriution object from the contribution data
    */
-  public function getRecurringContribution($cycle_day_adjust = 'minimum') {
+  public function getRecurringContribution($cycle_day_adjust = 'median') {
     $first_contribution = reset($this->contribution_sequence);
     $last_contribution  = end($this->contribution_sequence);
 

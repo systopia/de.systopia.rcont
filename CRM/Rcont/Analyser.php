@@ -31,7 +31,7 @@ class CRM_Rcont_Analyser {
 
   public static $comparisonWeights  = array(
     'financial_type_id'     => 20,
-    'cycle_day'             => NULL, // cycle day delta will be used
+    'cycle_day'             => 1,    // multiplied with cycle day diff
     'campaign_id'           => 15,
     'amount'                => 20,   // will be multiplied by percentage
     'currency'              => 100,
@@ -228,9 +228,6 @@ class CRM_Rcont_Analyser {
         $similarities[] = array('existing'   => $existing_contribution,
                                 'extracted'  => $extracted_contribution,
                                 'similarity' => $similarity);
-        $similarities[] = array('existing'   => $existing_contribution,
-                                'extracted'  => $extracted_contribution,
-                                'similarity' => $similarity - 10);
       }
     }
     usort($similarities, "CRM_Rcont_Analyser::compareSimilarityEntries");
@@ -242,7 +239,8 @@ class CRM_Rcont_Analyser {
     $threshold = 65;
     foreach ($similarities as $match) {
       // stop if $threshold is not matched:
-      if ($match['similarity'] < $threshold) break;
+      $similarity = $match['similarity'];
+      if ($similarity < $threshold) break;
 
       // check if haven't already been matched
       $fp1 = sha1(json_encode($match['existing']));
@@ -302,7 +300,11 @@ class CRM_Rcont_Analyser {
           break;
         
         case 'cycle_day':
-          $similarity -= abs($existing_rcont['cycle_day'] - $extracted_rcont['cycle_day']);
+          $cycle_day_diff = abs($existing_rcont['cycle_day'] - $extracted_rcont['cycle_day']);
+          // mind rolling diff (eg. 30th-2nd)
+          $cycle_day_diff = min($cycle_day_diff, abs(30 - $cycle_day_diff));
+          // use diff as penalty
+          $similarity -= $cycle_day_diff * $weight;
           break;
 
         default:
