@@ -31,9 +31,9 @@ class CRM_Rcont_Analyser {
 
   public static $comparisonWeights  = array(
     'financial_type_id'     => 20,
-    'cycle_day'             => 15,
+    'cycle_day'             => NULL, // cycle day delta will be used
     'campaign_id'           => 15,
-    'amount'                => 15,  // will be multiplied by percentage
+    'amount'                => 20,   // will be multiplied by percentage
     'currency'              => 100,
     'frequency_interval'    => 100,
     'frequency_unit'        => 100);
@@ -55,7 +55,7 @@ class CRM_Rcont_Analyser {
     }
 
     if (empty($params['installments'])) {
-      $params['installments'] = 3;
+      $params['installments'] = 5;
     }
 
 
@@ -89,7 +89,8 @@ class CRM_Rcont_Analyser {
         } else {
           $old = self::recurringContributiontoString($change['from']);
           $new = self::recurringContributiontoString($change['to']);
-          $message = "Update recurring contribution [{$change['from']['id']}]: $old => $new"; 
+          $percent = (int) $change['similarity'];
+          $message = "Update recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new"; 
         }
         $log_entry .= $message . "\n";
       }
@@ -238,7 +239,7 @@ class CRM_Rcont_Analyser {
     // second step, accept matches with good enough ratings
     $matches = array();
     $matched_rcontributions = array();
-    $threshold = 70;
+    $threshold = 65;
     foreach ($similarities as $match) {
       // stop if $threshold is not matched:
       if ($match['similarity'] < $threshold) break;
@@ -252,7 +253,8 @@ class CRM_Rcont_Analyser {
       // all good: record as match
       $matches[] = array('from'  => $match['existing'],
                          'to'    => $match['extracted'],
-                         'match' => ($similarity==100));
+                         'match' => ($similarity==100),
+                         'similarity' => $similarity);
 
       // ...and mark both as matched
       $matched_rcontributions[] = $fp1;
@@ -282,18 +284,32 @@ class CRM_Rcont_Analyser {
   /**
    * calculate similarity between two recurring contributions
    */
-  public static function calculateSimilarity($rcontribution1, $rcontribution2) {
+  public static function calculateSimilarity($existing_rcont, $extracted_rcont) {
     $similarity = 100;
     foreach (self::$comparisonWeights as $attribute => $weight) {
-      if ($attribute == 'amount') {
-        // amount penalty gets multiplied by percentage of decrease
-        $increase = $rcontribution2['amount'] / $rcontribution1['amount'];
-        $factor = abs($increase - 1.0);
-        $similarity -= $weight * $factor;
-      } else {
-        if ($rcontribution1[$attribute] != $rcontribution2[$attribute]) {
-          $similarity -= $weight;
-        }
+      switch ($attribute) {
+        case 'amount':
+          // amount penalty gets multiplied by percentage of decrease
+          if ($extracted_rcont['amount'] >= $existing_rcont['amount']) {
+            // this is an increase (more likely to be correct)
+            $increase = (double) $extracted_rcont['amount'] / (double) $existing_rcont['amount'];
+            $factor = $increase - 1.0;
+          } else {
+            // decreases are unlikely and will get the full penalty
+            $factor = 1.0;
+          }
+          $similarity -= $weight * $factor;
+          break;
+        
+        case 'cycle_day':
+          $similarity -= abs($existing_rcont['cycle_day'] - $extracted_rcont['cycle_day']);
+          break;
+
+        default:
+          if ($existing_rcont[$attribute] != $extracted_rcont[$attribute]) {
+            $similarity -= $weight;
+          }
+          break;
       }
     }
     return $similarity;
@@ -310,12 +326,12 @@ class CRM_Rcont_Analyser {
       $campaign = $entity['title'];
     }
     if (empty($rcontribution['contribution_count'])) {
-      $counter = "[{$rcontribution['contribution_count']}x]";
-    } else {
       $counter = "[n/a]";
+    } else {
+      $counter = "[{$rcontribution['contribution_count']}x]";
     }
 
-    return "{$rcontribution['amount']}/{$rcontribution['frequency_interval']}_{$rcontribution['frequency_unit']}@{$rcontribution['cycle_day']}.({$financial_type},{$campaign})$counter";
+    return "{$rcontribution['amount']}/{$rcontribution['frequency_interval']}_{$rcontribution['frequency_unit']}@{$rcontribution['cycle_day']}.({$financial_type},{$campaign}){$counter}";
   }
 
   public static function compareSimilarityEntries($entry1, $entry2) {
