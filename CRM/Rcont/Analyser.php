@@ -58,6 +58,10 @@ class CRM_Rcont_Analyser {
       $params['installments'] = 5;
     }
 
+    if (empty($params['apply_changes'])) {
+      $params['apply_changes'] = '';
+    }
+
 
     // calculat recurring contributions
     $extracted_contributions = CRM_Rcont_Analyser::extractRecurringContributions($contact_id, $params);
@@ -70,13 +74,9 @@ class CRM_Rcont_Analyser {
     // match extracted with existing contribtions
     $changes = CRM_Rcont_Analyser::matchRecurringContributions($existing_contributions, $extracted_contributions);
     // error_log("PROPOSED CHANGES: ".print_r($changes,1));
-      
-    // TODO: apply changes
-
-    // if (!empty($params['logfile'])) {
-      // TODO: logging
-    // }
-    if (!empty($changes)) {
+  
+    // ANALYSIS LOG
+    if (!empty($params['analysis_log']) && !empty($changes)) {
       $log_entry = "Contact [$contact_id]:\n";
       foreach ($changes as $change) {
         if ($change['from'] == NULL) {
@@ -95,7 +95,46 @@ class CRM_Rcont_Analyser {
         $log_entry .= $message . "\n";
       }
       $log_entry .= "\n";
-      file_put_contents('/tmp/rcontribution_survey.log', $log_entry, FILE_APPEND);
+      file_put_contents($params['analysis_log'], $log_entry, FILE_APPEND);
+    }
+
+    // APPLY CHANGES
+    if (!empty($params['apply_changes']) && !empty($changes)) {
+      $change_types = explode(',', $params['apply_changes']);
+      $log_entries = array("Contact [$contact_id]:");
+      foreach ($changes as $change) {
+        if ($change['from'] == NULL) {
+          // this is a 'create' action
+          if (in_array('create', $change_types)) {
+            $rcontribution = self::createRecurringContribution($change['to']);
+            $log_entries[] = "Created new recurring contribution [{$rcontribution['id']}]: " . self::recurringContributiontoString($rcontribution);
+          }
+        } elseif ($change['to'] == NULL) {
+          // this is a 'delete' action
+          if (in_array('delete', $change_types)) {
+            $rcontribution = self::deleteRecurringContribution($change['from']);
+            $log_entries[] = "Deleted recurring contribution [{$change['from']['id']}]" . self::recurringContributiontoString($change['from']);
+          }
+        } elseif (!$change['match']) {
+          // this is a 'update' action
+          if (in_array('update', $change_types)) {          
+            self::updateRecurringContribution($change['from'], $change['to']);
+            $old = self::recurringContributiontoString($change['from']);
+            $new = self::recurringContributiontoString($change['to']);
+            $percent = (int) $change['similarity'];
+            $log_entries[] = "Updated recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new";
+          }
+        } else {
+          // this is a MATCH event
+          if (in_array('assign', $change_types)) {
+            // TODO: assign all contributoins in $change['to'] to $change['from']['id']
+          }
+        }
+      }
+      if (count($log_entries) > 1 && !empty($params['change_log'])) {
+        $log_entry = implode("\n", $log_entries);
+        file_put_contents($params['change_log'], $log_entry . "\n\n", FILE_APPEND);
+      }
     }
     
     return $changes;
@@ -127,6 +166,7 @@ class CRM_Rcont_Analyser {
               FROM civicrm_contribution 
               WHERE contact_id = $contact_id 
                 AND (is_test = 0 OR is_test IS NULL)
+                AND total_amount > 0
                 AND contribution_status_id = 1
                 AND $financial_type_clause
                 AND $payment_instrument_clause
@@ -365,5 +405,83 @@ class CRM_Rcont_Analyser {
       }
     }
     return $sql_clause;
+  }
+
+
+
+  // Changeing Recurring contributions
+
+  /**
+   * create a new recurring contribution with the given data
+   */
+  public static function createRecurringContribution($rcontribution) {
+    // copy standard fields
+    $fields = array('contact_id','amount','currency','frequency_unit','frequency_interval','start_date','cycle_day','financial_type_id','payment_instrument_id','campaign_id');
+    $data = array();
+    foreach ($fields as $field_name) {
+      if (isset($rcontribution[$field_name])) {
+        $data[$field_name] = $rcontribution[$field_name];
+      }
+    }
+
+    // set some extra fields
+    $data['contribution_status_id'] = 5; // "in Progress"
+    $data['is_test'] = 0;
+    $data['create_date'] = date('Ymdhis');
+    $data['modified_date'] = date('Ymdhis');
+
+    // finally create the recurring contribution
+    $result = civicrm_api3('ContributionRecur', 'create', $data);
+
+    // return the newly created recurring contribution
+    return civicrm_api3('ContributionRecur', 'getsingle', array('id' => $result['id']));
+  }
+
+  /**
+   * delete a recurring contribution
+   */
+  public static function deleteRecurringContribution($rcontribution) {
+    if (!empty($rcontribution['id'])) {
+      civicrm_api3('ContributionRecur', 'delete', array('id' => (int) $rcontribution['id']));
+    }
+  }
+
+  /**
+   * update a recurring contribution
+   */
+  public static function updateRecurringContribution($rcurFrom, $rcurTo) {
+    if (empty($rcurFrom['id'])) {
+      return;
+    }
+
+    // copy standard fields
+    $fields = array('contribution_status_id','contact_id','amount','currency','frequency_unit','frequency_interval','start_date','cycle_day','financial_type_id','payment_instrument_id','campaign_id');
+    $data = array();
+    foreach ($fields as $field_name) {
+      if (isset($rcurTo[$field_name])) {
+        $data[$field_name] = $rcurTo[$field_name];
+      } elseif (isset($rcurFrom[$field_name])) {
+        $data[$field_name] = $rcurFrom[$field_name];
+      }
+    }
+
+    // set some extra fields
+    $data['id'] = $rcurFrom['id'];
+    $data['is_test'] = 0;
+    $data['modified_date'] = date('Ymdhis');
+    
+    // move end date (if exists)
+    if (!empty($rcurFrom['end_date'])) {
+      $old_end_date = strtotime($rcurFrom['end_date']);
+      $new_end_date = strtotime($rcurTo['end_date']);
+      if ($old_end_date < $new_end_date) {
+        $data['end_date'] = date('Ymdhis', $new_end_date);
+      } else {
+        $data['end_date'] = date('Ymdhis', $old_end_date);
+      }
+    }
+
+    // finally perform the update
+    civicrm_api3('ContributionRecur', 'create', $data);
   }
 }

@@ -59,9 +59,6 @@ function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
   // bulk-analyse a set of contacts, <buik_count> at once, keeping track of the last you did
   $params['bulk_count'] =  array('api.required' => 0);
 
-  // log file to write your results to
-  $params['logfile'] = array('api.required' => 0);
-
   // reset the last visited ID
   $params['reset'] = array('api.required' => 0,
                            'api.default' => 0);
@@ -71,4 +68,15 @@ function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
 
   // restrict to the given payment instruments. 
   $params['financial_type_ids'] = array('api.required' => 0);
+
+  // restrict to the given payment instruments. 
+  $params['apply_changes'] = array('api.required' => 0,
+                                   'api.default' => '');
+
+  // restrict to the given payment instruments. 
+  $params['analysis_log'] = array('api.required' => 0);
+
+  // restrict to the given payment instruments. 
+  $params['change_log'] = array('api.required' => 0);
+
 }

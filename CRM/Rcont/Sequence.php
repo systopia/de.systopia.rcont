@@ -82,7 +82,6 @@ class CRM_Rcont_Sequence {
     $offset = ($this_receive_date - $last_receive_date);
     // error_log("Expd date: " . date('Y-m-d H:i:s', $last_receive_date));
     // error_log("This date: " . date('Y-m-d H:i:s', $this_receive_date));
-    // error_log("OFFF date: " . date('Y-m-d H:i:s', $offset));
     // error_log("OFFSET: $offset");
     // error_log("TOLR:   " . $this->cycle_tolerance);
     if ($offset < $this->minimum_cycle_day_offset) {
@@ -92,17 +91,6 @@ class CRM_Rcont_Sequence {
     } else {
       return TRUE;
     }
-    // error_log("Expd date: " . date('Y-m-d H:i:s', $last_receive_date));
-    // error_log("This date: " . date('Y-m-d H:i:s', $this_receive_date));
-    // error_log("DIFF: " . ($last_receive_date - $this_receive_date));
-    // error_log("TOLR: " . $this->cycle_tolerance);
-    // if (abs($last_receive_date - $this_receive_date) <= $this->cycle_tolerance) {
-    //   // error_log("ADDED");
-    //   return TRUE;
-    // } else {
-    //   // error_log("NOT ADDED");
-    //   return FALSE;
-    // }
   }
 
   /**
@@ -116,27 +104,11 @@ class CRM_Rcont_Sequence {
     $offset = ($this_receive_date - $expected_receive_date);
     if ($offset < $this->minimum_cycle_day_offset) $this->minimum_cycle_day_offset = $offset;
     if ($offset > $this->maximum_cycle_day_offset) $this->maximum_cycle_day_offset = $offset;
-    // $offset = ($this_receive_date - $expected_receive_date);
     $this->cycle_day_offset_list[] = $offset;
 
-// TODO: use median, not average. 
-    // $cycle_day = date('d', strtotime($contribution['receive_date']));
-    // if ($cycle_day != $this->cycle_day) {
-    //   // re-calculate cycle day
-    //   $cycle_day_sum = 0;
-    //   foreach ($this->contribution_sequence as $contribution) {
-    //     $cycle_day_sum += date('d', strtotime($contribution['receive_date']));
-    //   }
-    //   $this->cycle_day = round((double) $cycle_day_sum / (double) count($this->contribution_sequence));
-    //   error_log("CHANGED cycle_day: {$this->cycle_day}");
-    // }
-    // TODO: verify new cycle day is still valid
-
-    // error_log("ADDED");
-
-    // add
-    $this->hash = sha1($this->hash . $contribution['id']);
+    // add to list
     $this->contribution_sequence[] = $contribution;
+    $this->hash = sha1($this->hash . $contribution['id']);
     $this->expected_receive_date = NULL;
   }
 
@@ -148,25 +120,6 @@ class CRM_Rcont_Sequence {
       $last_contribution = end($this->contribution_sequence);
       $last_receive_date = strtotime($last_contribution['receive_date']);
       $next_receive_date = strtotime('-'.$this->cycle, $last_receive_date);
-      // error_log('-'.$this->cycle);
-      // $half_cycle = strtotime($this->cycle, 0) / 60 / 60 / 24;
-
-      // $cycle_day_offset = $this->cycle_day - date('d', $next_receive_date);
-      // $cycle_day_delta  = abs($cycle_day_offset);
-      // if ($cycle_day_delta < $half_cycle) {
-      //   if ($cycle_day_offset > 0) {
-      //     $next_receive_date = strtotime("+$cycle_day_delta days", $next_receive_date);
-      //   } elseif ($cycle_day_offset < 0) {
-      //     $next_receive_date = strtotime("-$cycle_day_delta days", $next_receive_date);
-      //   }
-      // } else {
-      //   if ($cycle_day_offset > 0) {
-      //     $next_receive_date = strtotime("-$cycle_day_delta days", $next_receive_date);
-      //     $next_receive_date = strtotime('+'.$this->cycle, $next_receive_date);
-      //   } elseif ($cycle_day_offset < 0) {
-      //     $next_receive_date = strtotime("+$cycle_day_delta days", $next_receive_date);
-      //   }
-      // }
 
       // error_log("Last date: " . date('Y-m-d', $last_receive_date));
       // error_log("Next date: " . date('Y-m-d', $next_receive_date));
@@ -182,24 +135,8 @@ class CRM_Rcont_Sequence {
     $first_contribution = reset($this->contribution_sequence);
     $last_contribution  = end($this->contribution_sequence);
 
-    // calculate 'better' cycle day with the stats
-    // $optimisedOffset = ($this->cycle_day_offset_sum / count($this->contribution_sequence));
-    // // this would be the ideal one, but we have to make sure we don't 
-    // //  violate the tolerance when moving
-    // if ($this->maximum_cycle_day_offset - $optimisedOffset > $cycle_tolerance) {
-    //   $optimisedOffset = $this->maximum_cycle_day_offset - $cycle_tolerance;
-    // } elseif ($optimisedOffset - $this->minimum_cycle_day_offset > $cycle_tolerance) {
-    //   $optimisedOffset = $this->minimum_cycle_day_offset + $cycle_tolerance;
-    // }
-    // $best_cycle_day = $this->cycle_day + round(($optimisedOffset / 60 / 60 / 24));
-
-    // use median offset to calculate 'better' cycle day
-    // sort($this->cycle_day_offset_list);
-    // $median_offset = $this->cycle_day_offset_list[count($this->cycle_day_offset_list) / 2];
-    // $best_cycle_day = $this->cycle_day + $median_offset);
-
+    // optimise cycle_day if requested
     sort($this->cycle_day_offset_list);
-    // error_log(print_r($this->cycle_day_offset_list,1));
     switch ($cycle_day_adjust) {
 
       case 'median':
@@ -224,24 +161,9 @@ class CRM_Rcont_Sequence {
         break;
     }
 
-    // // this would be the ideal one, but we have to make sure we don't 
-    // //  violate the tolerance when moving
-    // if ($this->maximum_cycle_day_offset - $best_offset > $cycle_tolerance) {
-    //   $best_offset = $this->maximum_cycle_day_offset - $cycle_tolerance;
-    // } elseif ($best_offset - $this->minimum_cycle_day_offset > $cycle_tolerance) {
-    //   $best_offset = $this->minimum_cycle_day_offset + $cycle_tolerance;
-    // }
     $best_cycle_day = $this->cycle_day + (int) ($best_offset / 60 / 60 / 24);
     if ($best_cycle_day > 30) $best_cycle_day -= 30;
     if ($best_cycle_day < 1)  $best_cycle_day += 30;
-
-
-
-    // $cycle_day_sum = 0;
-    // foreach ($this->contribution_sequence as $contribution) {
-    //   $cycle_day_sum += date('d', strtotime($contribution['receive_date']));
-    // }
-    // $cycle_day = round((double) $cycle_day_sum / (double) count($this->contribution_sequence));
 
     $frequency = explode(' ', $this->cycle);
     $recurring_contribution = array(
