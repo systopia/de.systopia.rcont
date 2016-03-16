@@ -124,32 +124,45 @@ function rcont_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
   _rcont_civix_civicrm_alterSettingsFolders($metaDataFolders);
 }
 
-/**
- * Functions below this ship commented out. Uncomment as required.
- *
 
 /**
- * Implements hook_civicrm_preProcess().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_preProcess
- *
-function rcont_civicrm_preProcess($formName, &$form) {
-
-} // */
+ * put the new rcontribtion edit mask in the action links
+ */
+function rcont_civicrm_links( $op, $objectName, $objectId, &$links, &$mask, &$values ) {
+  if ($op == 'contribution.selector.recurring') {
+    foreach ($links as $key => &$link) {
+      if ($link['name'] == 'Edit') {
+        $link['url'] = 'civicrm/rcontribution/edit';
+        $link['qs'] = 'reset=1&rcid=%%crid%%';
+        // $link['class'] = 'no-popup';
+      }
+    }
+  }
+}
 
 /**
- * Implements hook_civicrm_navigationMenu().
- *
- * @link http://wiki.civicrm.org/confluence/display/CRMDOC/hook_civicrm_navigationMenu
- *
-function rcont_civicrm_navigationMenu(&$menu) {
-  _rcont_civix_insert_navigation_menu($menu, NULL, array(
-    'label' => ts('The Page', array('domain' => 'de.systopia.rcont')),
-    'name' => 'the_page',
-    'url' => 'civicrm/the-page',
-    'permission' => 'access CiviReport,access CiviContribute',
-    'operator' => 'OR',
-    'separator' => 0,
-  ));
-  _rcont_civix_navigationMenu($menu);
-} // */
+ * put a new rcontribtion edit button in rcontribution view
+ */
+function rcont_civicrm_pageRun(&$page) {
+  $pageName = $page->getVar('_name');
+  if ($pageName == 'CRM_Contribute_Page_ContributionRecur') {
+    CRM_Core_Region::instance('page-body')->add(array(
+      'template' => 'CRM/Uimods/Page/ContributionRecur.rcont.tpl'
+    ));
+  }
+}
+
+/**
+ * put a new rcontribtion action in summary action list
+ */
+function rcont_civicrm_summaryActions( &$actions, $contactID ) {
+  $actions['add_rcontribution'] = array(
+      'title'           => ts("Add Recurring Contribution"),
+      'weight'          => 5,
+      'ref'             => 'add-recurring-contribution',
+      'key'             => 'add_rcontribution',
+      'component'       => 'CiviContribute',
+      'href'            => CRM_Utils_System::url('civicrm/rcont/edit', "cid=$contactID"),
+      'permissions'     => array('access CiviContribute', 'edit contributions')
+    );
+}

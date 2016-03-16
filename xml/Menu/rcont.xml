@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<menu>
+  <item>
+    <path>civicrm/rcont/edit</path>
+    <page_callback>CRM_Uimods_Form_RecurEdit</page_callback>
+    <title>Edit Recurring Contribution</title>
+    <access_arguments>access CiviCRM</access_arguments>
+  </item>
+</menu>
