@@ -36,8 +36,9 @@ class CRM_Rcont_Sequence {
     'contact_id'            => 'contact_id',
     'amount'                => 'total_amount',
     'currency'              => 'currency',
-    'fee_amount'            => 'fee_amount',
-    'net_amount'            => 'net_amount');
+    // 'fee_amount'            => 'fee_amount',
+    // 'net_amount'            => 'net_amount'
+    );
 
   /**
    * create a new series with the most recent contribution
