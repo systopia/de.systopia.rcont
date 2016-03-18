@@ -27,6 +27,8 @@ class CRM_Rcont_Sequence {
   protected $cycle_day_offset_list    = array();
   protected $contribution_sequence    = array();
   protected $cycle_tolerance          = NULL;
+  protected $max_skips                = 0;       // tolerate missing $max_skips periods
+  protected $max_skip_time            = 0;       // tolerate a maximum of $max_skip_time seconds of skipped periods. 
   protected $hash                     = '';
 
   public static $identical_fields  = array(
@@ -36,20 +38,26 @@ class CRM_Rcont_Sequence {
     'contact_id'            => 'contact_id',
     'amount'                => 'total_amount',
     'currency'              => 'currency',
-    // 'fee_amount'            => 'fee_amount',
-    // 'net_amount'            => 'net_amount'
     );
 
   /**
    * create a new series with the most recent contribution
    */
-  public function __construct($contribution, $cycle, $tolerance = '7 days') {
+  public function __construct($contribution, $cycle, $tolerance = '7 days', $max_skips = 0, $max_skip_days = NULL) {
     $this->cycle = $cycle;
     $this->cycle_tolerance = strtotime($tolerance, 0);
     $this->most_recent_contribution = $contribution;
     $this->contribution_sequence[] = $contribution;
     $this->cycle_day = date('d', strtotime($contribution['receive_date']));
     $this->cycle_day_offset_list[] = 0;
+    $this->max_skips = (int) $max_skips;
+    if ($max_skip_days === NULL) {
+      // defaults to $cycle x ($max_skips+1) + $tolerance
+      $this->max_skip_time = strtotime($cycle, 0) * ($this->max_skips + 1) + $this->cycle_tolerance;
+      // error_log("SKIP time: " . $this->max_skip_time / 60 / 60 / 24);
+    } else {
+      $this->max_skip_time = strtotime("+{$max_skip_days} days", 0);
+    }
   }
 
   /**
@@ -62,9 +70,11 @@ class CRM_Rcont_Sequence {
   /**
    * check if the given contribution matches the 
    * sequence.
+   *
+   * @return intervals (usually 1, but more if skip allowed). FALSE if it doesn't match
    */
   public function matches($contribution) {
-    // first: withoug receive date there's nothing we can do
+    // first: without receive date there's nothing we can do
     if (empty($contribution['receive_date'])) {
       return FALSE;
     }
@@ -77,30 +87,46 @@ class CRM_Rcont_Sequence {
       }
     }
 
-    // all attributes seem o.k., tolerance
-    $last_receive_date = $this->expectedReceiveDate();
     $this_receive_date = strtotime($contribution['receive_date']);
-    $offset = ($this_receive_date - $last_receive_date);
-    // error_log("Expd date: " . date('Y-m-d H:i:s', $last_receive_date));
-    // error_log("This date: " . date('Y-m-d H:i:s', $this_receive_date));
-    // error_log("OFFSET: $offset");
-    // error_log("TOLR:   " . $this->cycle_tolerance);
-    if ($offset < $this->minimum_cycle_day_offset) {
-      return ($offset >= $this->maximum_cycle_day_offset - $this->cycle_tolerance);
-    } elseif ($offset > $this->maximum_cycle_day_offset) {
-      return ($offset <= $this->minimum_cycle_day_offset + $this->cycle_tolerance);
-    } else {
-      return TRUE;
+    
+    for ($skips = 0; $skips <= $this->max_skips; $skips++) {
+      // all attributes seem o.k., tolerance
+      $last_receive_date = $this->expectedReceiveDate(1 + $skips);
+      $offset = ($this_receive_date - $last_receive_date);
+
+      // if the skip time 
+      if (abs($offset) > $this->max_skip_time) break;
+
+      // error_log("Expd date: " . date('Y-m-d H:i:s', $last_receive_date));
+      // error_log("This date: " . date('Y-m-d H:i:s', $this_receive_date));
+      // error_log("OFFSET: $offset");
+      // error_log("TOLR:   " . $this->cycle_tolerance);
+      if ($offset < $this->minimum_cycle_day_offset) {
+        if ($offset >= $this->maximum_cycle_day_offset - $this->cycle_tolerance) {
+          return $skips + 1;
+        }
+      } elseif ($offset > $this->maximum_cycle_day_offset) {
+        if ($offset <= $this->minimum_cycle_day_offset + $this->cycle_tolerance) {
+          return $skips + 1;
+        }
+      } else {
+        return $skips + 1;
+      }
     }
+
+    return FALSE;
   }
 
   /**
    * add a contribution to the sequence
    * the contribution should have previously been checked with the matches() method
+   *
+   * @param $contribution the contribtuion to add 
+   * @param $intervals    the intervals after the current end (usually 1, but more when skips occur)
    */
-  public function add($contribution) {      
+  public function add($contribution, $intervals = 1) {
     // update cycle day stats
-    $expected_receive_date = $this->expectedReceiveDate();
+    $expected_receive_date = $this->expectedReceiveDate($intervals);
     $this_receive_date = strtotime($contribution['receive_date']);
     $offset = ($this_receive_date - $expected_receive_date);
     if ($offset < $this->minimum_cycle_day_offset) $this->minimum_cycle_day_offset = $offset;
@@ -110,23 +136,19 @@ class CRM_Rcont_Sequence {
     // add to list
     $this->contribution_sequence[] = $contribution;
     $this->hash = sha1($this->hash . $contribution['id']);
-    $this->expected_receive_date = NULL;
   }
 
   /**
    * calculate the previous receive date in the sequence
    */
-  public function expectedReceiveDate() {
-    if (!$this->expected_receive_date) {
-      $last_contribution = end($this->contribution_sequence);
-      $last_receive_date = strtotime($last_contribution['receive_date']);
-      $next_receive_date = strtotime('-'.$this->cycle, $last_receive_date);
-
-      // error_log("Last date: " . date('Y-m-d', $last_receive_date));
-      // error_log("Next date: " . date('Y-m-d', $next_receive_date));
-      $this->expected_receive_date = $next_receive_date;
+  public function expectedReceiveDate($intervals = 1) {
+    $last_contribution = end($this->contribution_sequence);
+    $last_receive_date = strtotime($last_contribution['receive_date']);
+    $next_receive_date = $last_receive_date;
+    for ($i = 0; $i < $intervals; $i++) {
+      $next_receive_date = strtotime('-'.$this->cycle, $next_receive_date);
     }
-    return $this->expected_receive_date;
+    return $next_receive_date;
   }
 
   /**
@@ -176,6 +198,13 @@ class CRM_Rcont_Sequence {
       'end_date'           => $first_contribution['receive_date'],
       'start_date'         => $last_contribution['receive_date']);
 
+    // add contribution IDs
+    $contribution_ids = array();
+    foreach ($this->contribution_sequence as $contribution) {
+      $contribution_ids[] = $contribution['id'];
+    }
+    $recurring_contribution['_contribution_ids'] = $contribution_ids;
+
     foreach (self::$identical_fields as $rcur_field_name => $field_name) {
       $recurring_contribution[$rcur_field_name] = $first_contribution[$field_name];
     }
@@ -192,4 +221,6 @@ class CRM_Rcont_Sequence {
       $matched_contributions[$contribution['id']] = $this;
     }
   }
+
+
 }

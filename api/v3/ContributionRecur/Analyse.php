@@ -51,11 +51,23 @@ function civicrm_api3_contribution_recur_analyse($params) {
   return civicrm_api3_create_success($recurring_contributions);
 }
 
+/**
+ * basically the same as ContributionRecur:analyse, 
+ * but adjusting the recurring contributions according to the
+ * findings
+ */
+function civicrm_api3_contribution_recur_adjust($params) {
+  $params['apply_changes'] = 1;
+  return civicrm_api3_contribution_recur_analyse($params);
+}
 
+
+
+
+/**
+ * API specs for ContributionRecur:analyse
+ */
 function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
-  // analyse a single contact ID
-  $params['contact_id'] =  array('api.required' => 0);
-
   // bulk-analyse a set of contacts, <buik_count> at once, keeping track of the last you did
   $params['bulk_count'] =  array('api.required' => 0);
 
@@ -69,14 +81,31 @@ function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
   // restrict to the given payment instruments. 
   $params['financial_type_ids'] = array('api.required' => 0);
 
-  // restrict to the given payment instruments. 
-  $params['apply_changes'] = array('api.required' => 0,
-                                   'api.default' => '');
+  // tolerance in days
+  $params['tolerance'] = array('api.required' => 0);
 
-  // restrict to the given payment instruments. 
+  // if >0 allows skipping installments of a sequence
+  $params['max_skips'] = array('api.required' => 0);
+
+  // if restricts the total time when skipping installments
+  $params['max_skip_days'] = array('api.required' => 0);
+
+  // absolute path of an log file with the results
   $params['analysis_log'] = array('api.required' => 0);
 
-  // restrict to the given payment instruments. 
-  $params['change_log'] = array('api.required' => 0);
+  // analyse a single contact ID
+  $params['contact_id'] =  array('api.required' => 0);
+}
 
+/**
+ * API specs for ContributionRecur:adjust
+ */
+function _civicrm_api3_contribution_recur_adjust_spec(&$params) {
+  _civicrm_api3_contribution_recur_analyse_spec($params);
+
+  // if true, will assign the contributions to the respective recurring contributions
+  $params['asssign_contributions'] = array('api.required' => 0);
+
+  // absolute path of an log file with the changes
+  $params['change_log'] = array('api.required' => 0);
 }

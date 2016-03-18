@@ -62,6 +62,19 @@ class CRM_Rcont_Analyser {
       $params['apply_changes'] = '';
     }
 
+    if (empty($params['tolerance'])) {
+      $params['tolerance'] = '7 days';
+    }
+
+    if (empty($params['max_skips'])) {
+      $params['max_skips'] = 0;
+    }
+
+    if (empty($params['max_skip_days'])) {
+      $params['max_skip_days'] = 180;
+    }
+
+
 
     // calculat recurring contributions
     $extracted_contributions = CRM_Rcont_Analyser::extractRecurringContributions($contact_id, $params);
@@ -108,6 +121,9 @@ class CRM_Rcont_Analyser {
           if (in_array('create', $change_types)) {
             $rcontribution = self::createRecurringContribution($change['to']);
             $log_entries[] = "Created new recurring contribution [{$rcontribution['id']}]: " . self::recurringContributiontoString($rcontribution);
+            if (!empty($params['asssign_contributions'])) {
+              $log_entries[] = self::assignContributions($change['to'], $rcontribution['id']);
+            }
           }
         } elseif ($change['to'] == NULL) {
           // this is a 'delete' action
@@ -123,6 +139,9 @@ class CRM_Rcont_Analyser {
             $new = self::recurringContributiontoString($change['to']);
             $percent = (int) $change['similarity'];
             $log_entries[] = "Updated recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new";
+            if (!empty($params['asssign_contributions'])) {
+              $log_entries[] = self::assignContributions($change['to'], $change['from']['id']);
+            }
           }
         } else {
           // this is a MATCH event
@@ -190,9 +209,13 @@ class CRM_Rcont_Analyser {
         }
 
         // sort into sequences
+        $cycles = 0;
         foreach ($sequences as $sequence) {
-          if ($sequence->matches($contribution)) {
-            $sequence->add($contribution);
+          if ($cycles = $sequence->matches($contribution)) {
+            if ($cycles > 1) {
+              error_log("Skip $cycles detected!");
+            }
+            $sequence->add($contribution, $cycles);
             $processed = TRUE;
             break;
           }
@@ -202,7 +225,7 @@ class CRM_Rcont_Analyser {
         // this doesn't belong to any sequence so far
         if (strtotime($contribution['receive_date']) > $last_sequence_start) {
           // this is still within the limits of starting a new sequence
-          $sequences[] = new CRM_Rcont_Sequence($contribution, $interval);
+          $sequences[] = new CRM_Rcont_Sequence($contribution, $interval, $params['tolerance'], $params['max_skips'], $params['max_skip_days']);
         }
       }
 
@@ -483,5 +506,31 @@ class CRM_Rcont_Analyser {
 
     // finally perform the update
     civicrm_api3('ContributionRecur', 'create', $data);
+  }
+
+  /**
+   * assign the contributions contained in the sequence to the given recurring contribution id
+   *
+   * @return a log message
+   */
+  public static function assignContributions($rcont_sequence, $recurring_contribution_id) {
+    $contribution_ids = $rcont_sequence['_contribution_ids'];
+    $contribution_id_list = implode(',', $contribution_ids);
+    $total_count = count($contribution_ids);
+    $unassigned_count = CRM_Core_DAO::singleValueQuery("SELECT COUNT(id) FROM civicrm_contribution WHERE contribution_recur_id != %1 AND id IN ($contribution_id_list)",
+      array(1 => array($recurring_contribution_id, 'Integer')));
+
+    // perform the changes
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_contribution SET contribution_recur_id = %1 WHERE id IN ($contribution_id_list)",
+      array(1 => array($recurring_contribution_id, 'Integer')));
+
+    // return log messages
+    if ($total_count == 0) {
+      return "ERROR: No contributions found to assign to [$recurring_contribution_id]";
+    } elseif ($unassigned_count == 0) {
+      return "All $total_count contributions already assigned to [$recurring_contribution_id]";
+    } else {
+      return "(Re)assigned $unassigned_count of $total_count contributions to [$recurring_contribution_id]";
+    }
   }
 }
