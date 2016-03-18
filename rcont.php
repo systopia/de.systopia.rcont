@@ -132,7 +132,7 @@ function rcont_civicrm_links( $op, $objectName, $objectId, &$links, &$mask, &$va
   if ($op == 'contribution.selector.recurring') {
     foreach ($links as $key => &$link) {
       if ($link['name'] == 'Edit') {
-        $link['url'] = 'civicrm/rcontribution/edit';
+        $link['url'] = 'civicrm/rcont/edit';
         $link['qs'] = 'reset=1&rcid=%%crid%%';
         // $link['class'] = 'no-popup';
       }
@@ -147,7 +147,7 @@ function rcont_civicrm_pageRun(&$page) {
   $pageName = $page->getVar('_name');
   if ($pageName == 'CRM_Contribute_Page_ContributionRecur') {
     CRM_Core_Region::instance('page-body')->add(array(
-      'template' => 'CRM/Uimods/Page/ContributionRecur.rcont.tpl'
+      'template' => 'CRM/Rcont/Page/ContributionRecur.rcont.tpl'
     ));
   }
 }

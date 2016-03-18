@@ -20,7 +20,7 @@ require_once 'CRM/Core/Form.php';
  *
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
  */
-class CRM_Uimods_Form_RecurEdit extends CRM_Core_Form {
+class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
   public function buildQuickForm() {
     $rcontribution_id = 0;

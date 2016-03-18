@@ -12,7 +12,7 @@
 | written permission from the original author(s).        |
 +-------------------------------------------------------*}
 
-<a id="rcur-edit" href="{crmURL p='civicrm/rcontribution/edit' q="reset=1&rcid=`$recur.id`"}" class="button edit">Edit</a>
+<a id="rcur-edit" href="{crmURL p='civicrm/rcont/edit' q="reset=1&rcid=`$recur.id`"}" class="button edit">Edit</a>
 
 <script type="text/javascript">
 cj("div.crm-submit-buttons").append(cj("#rcur-edit"));
