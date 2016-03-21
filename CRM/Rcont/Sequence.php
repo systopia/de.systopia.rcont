@@ -80,7 +80,7 @@ class CRM_Rcont_Sequence {
     }
 
     // now: check if all values are identical
-    foreach ($this->identical_fields as $field_name) {
+    foreach (self::$identical_fields as $field_name) {
       if ($contribution[$field_name] != $this->most_recent_contribution[$field_name]) {
         // error_log("FIELD MISMATCH");
         return FALSE;
