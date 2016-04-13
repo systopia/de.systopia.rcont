@@ -111,6 +111,11 @@ class CRM_Rcont_Analyser {
       file_put_contents($params['analysis_log'], $log_entry, FILE_APPEND);
     }
 
+    // APPLY CHANGES IF REQUESTED
+    if (!empty($params['apply_changes'])) {
+      CRM_Rcont_Updater::updateContactRcur($contact_id, $changes, $params);
+    }
+    
     return $changes;
   }
 

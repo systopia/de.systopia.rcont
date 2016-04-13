@@ -18,26 +18,6 @@
  * Performs DB changes based on the data produced by the CRM_Rcont_Analyser
  */
 class CRM_Rcont_Updater {
-  public static $contribution_fields  = array(
-    'id'                    => 'id',
-    'financial_type_id'     => 'financial_type_id',
-    'campaign_id'           => 'campaign_id',
-    // 'payment_instrument_id' => 'payment_instrument_id',
-    'contact_id'            => 'contact_id',
-    'amount'                => 'total_amount',
-    'currency'              => 'currency',
-    'fee_amount'            => 'fee_amount',
-    'net_amount'            => 'net_amount');
-
-  public static $comparisonWeights  = array(
-    'financial_type_id'     => 20,
-    'cycle_day'             => 1,    // multiplied with cycle day diff
-    'campaign_id'           => 15,
-    'amount'                => 20,   // will be multiplied by percentage
-    'currency'              => 100,
-    'frequency_interval'    => 100,
-    'frequency_unit'        => 100);
-
 
   /** 
    * analyse the given contact for recurring contributions
@@ -45,46 +25,42 @@ class CRM_Rcont_Updater {
    * @return a list of recurring contributions
    */
   public static function updateContactRcur($contact_id, &$changes, $params) {
-    if (empty($params['apply_changes'])) {
-      $params['apply_changes'] = '';
-    }
-
     // APPLY CHANGES
-    if (!empty($params['apply_changes']) && !empty($changes)) {
-      $change_types = explode(',', $params['apply_changes']);
+    if (!empty($changes)) {
       $log_entries = array("Contact [$contact_id]:");
       foreach ($changes as $change) {
         if ($change['from'] == NULL) {
           // this is a 'create' action
-          if (in_array('create', $change_types)) {
+          if (!empty($params['rcont_create'])) {
             $rcontribution = self::createRecurringContribution($change['to']);
-            $log_entries[] = "Created new recurring contribution [{$rcontribution['id']}]: " . self::recurringContributiontoString($rcontribution);
-            if (!empty($params['asssign_contributions'])) {
-              $log_entries[] = self::assignContributions($change['to'], $rcontribution['id']);
+            $log_entries[] = "Created new recurring contribution [{$rcontribution['id']}]: " . CRM_Rcont_Analyser::recurringContributiontoString($rcontribution);
+            if (!empty($params['assign_contributions'])) {
+              $log_entries[] = self::assignContributions($change['to']['_contribution_ids'], $rcontribution['id']);
             }
           }
         } elseif ($change['to'] == NULL) {
           // this is a 'delete' action
-          if (in_array('delete', $change_types)) {
+          if (!empty($params['rcont_delete'])) {
             $rcontribution = self::deleteRecurringContribution($change['from']);
-            $log_entries[] = "Deleted recurring contribution [{$change['from']['id']}]" . self::recurringContributiontoString($change['from']);
+            $log_entries[] = "Deleted recurring contribution [{$change['from']['id']}]" . CRM_Rcont_Analyser::recurringContributiontoString($change['from']);
           }
         } elseif (!$change['match']) {
           // this is a 'update' action
-          if (in_array('update', $change_types)) {          
+          if (!empty($params['rcont_update'])) {          
             self::updateRecurringContribution($change['from'], $change['to']);
-            $old = self::recurringContributiontoString($change['from']);
-            $new = self::recurringContributiontoString($change['to']);
+            $old = CRM_Rcont_Analyser::recurringContributiontoString($change['from']);
+            $new = CRM_Rcont_Analyser::recurringContributiontoString($change['to']);
             $percent = (int) $change['similarity'];
             $log_entries[] = "Updated recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new";
-            if (!empty($params['asssign_contributions'])) {
-              $log_entries[] = self::assignContributions($change['to'], $change['from']['id']);
+            if (!empty($params['assign_contributions'])) {
+              $log_entries[] = self::assignContributions($change['to']['_contribution_ids'], $change['from']['id']);
             }
           }
         } else {
           // this is a MATCH event
-          if (in_array('assign', $change_types)) {
-            // TODO: assign all contributoins in $change['to'] to $change['from']['id']
+          if (!empty($params['assign_contributions'])) {
+            error_log("ASSIGN!");
+            $log_entries[] = self::assignContributions($change['to']['_contribution_ids'], $change['from']['id']);
           }
         }
       }
@@ -170,5 +146,24 @@ class CRM_Rcont_Updater {
 
     // finally perform the update
     civicrm_api3('ContributionRecur', 'create', $data);
+  }
+
+  /**
+   * assign the given contribution IDs to the contribution recur id
+   */
+  public static function assignContributions($contribution_ids, $contribution_recur_id) {
+    if (empty($contribution_ids)) {
+      error_log("NO CONTRBUTIONS!");
+      return;
+    }
+
+    if (empty($contribution_recur_id)) {
+      error_log("NO RECURRING CONTRIBUTION!");
+      return;
+    }
+
+    // set contribution_recur_id
+    $contribution_id_list = implode(',', $contribution_ids);
+    CRM_Core_DAO::executeQuery("UPDATE civicrm_contribution SET contribution_recur_id = $contribution_recur_id WHERE id IN ($contribution_id_list);");
   }
 }
