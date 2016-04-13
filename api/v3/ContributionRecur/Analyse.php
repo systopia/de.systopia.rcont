@@ -22,7 +22,7 @@ function civicrm_api3_contribution_recur_analyse($params) {
 
   if (!empty($params['contact_id'])) {
     // analyse one single contact
-    $recurring_contributions = CRM_Rcont_Analyser::evaluateContact($params['contact_id'], $params);
+    $recurring_contributions = CRM_Rcont_Analyser::evaluateContactRcur($params['contact_id'], $params);
   
   } elseif (!empty($params['bulk_count'])) {
     // analyse chunk of contacts
@@ -37,7 +37,7 @@ function civicrm_api3_contribution_recur_analyse($params) {
 
       // look into this contact
       CRM_Core_BAO_Setting::setItem($next_contact_id, 'de.systopia.rcont', 'bulk_last_contact_id');
-      $recurring_contributions[$next_contact_id] = CRM_Rcont_Analyser::evaluateContact($next_contact_id, $params);
+      $recurring_contributions[$next_contact_id] = CRM_Rcont_Analyser::evaluateContactRcur($next_contact_id, $params);
 
       $countdown -= 1;
     }
