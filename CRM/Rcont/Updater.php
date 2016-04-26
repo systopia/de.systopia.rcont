@@ -166,4 +166,125 @@ class CRM_Rcont_Updater {
     $contribution_id_list = implode(',', $contribution_ids);
     CRM_Core_DAO::executeQuery("UPDATE civicrm_contribution SET contribution_recur_id = $contribution_recur_id WHERE id IN ($contribution_id_list);");
   }
+
+
+  /**
+   * Will look into the group of recurring contribtions and check/mend 
+   * common inconsitencies:
+   *  1. overlap in time => will end the older ones
+   */
+  public static function mendRecurringContributions($recurring_contribution_ids, &$params) {
+    $query = civicrm_api3('ContributionRecur', 'get', array('id' => array('IN' => $recurring_contribution_ids), 'option.limit' => 99999));
+    $rcontributions = $query['values'];
+    $completed_status_ids = array(
+      CRM_Core_OptionGroup::getValue('contribution_status', 'Completed', 'name'),
+      CRM_Core_OptionGroup::getValue('contribution_status', 'Cancelled', 'name'),
+      CRM_Core_OptionGroup::getValue('contribution_status', 'Failed', 'name'),
+      CRM_Core_OptionGroup::getValue('contribution_status', 'Refunded', 'name'),
+    );
+    $open_status_ids = array(
+      CRM_Core_OptionGroup::getValue('contribution_status', 'Pending', 'name'),
+      CRM_Core_OptionGroup::getValue('contribution_status', 'In Progress', 'name'),
+    );
+    $log = array();
+
+    // first: check individually
+    foreach ($rcontributions as &$rcontribution) {
+      // all recurring contributions should have start dates
+      if (empty($rcontribution['start_date'])) {
+        $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] has no start date.";
+      }
+
+      // they shold have a certain length
+      if (!empty($rcontribution['end_date'])) {
+        $duration = strtotime($rcontribution['end_date']) - strtotime($rcontribution['start_date']);
+        TODO
+      }
+
+      // all ended recurring contributions should have an end_date
+      if (empty($rcontribution['end_date'])) {
+        if ($rcontribution['contribution_status_id'] == CRM_Core_OptionGroup::getValue('contribution_status', 'Completed', 'name')) {
+          $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] is closed/ended/cancelled but has no end date.";
+          // TODO: set to last contribution?
+        }
+      } else {
+        if ($rcontribution['end_date'] < date('Y-m-d h:i:s')) {
+          if (!in_array($rcontribution['contribution_status_id'], $completed_status_ids)) {
+            $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] has an end date in the past, but is not closed/ended/cancelled.";
+            if (!empty($params['contribution_status_id'])) {
+              $rcontribution['contribution_status_id'] = CRM_Core_OptionGroup::getValue('contribution_status', 'Completed', 'name');
+              civicrm_api3('ContributionRecur', 'create', array('id' => $rcontribution['id'], 'contribution_status_id' => $rcontribution['contribution_status_id']));
+              $log[] = "FIXED: Recurring contribution [{$rcontribution['id']}] was set to 'Completed'.";
+            } else {
+              $log[] = "SUGGESTION: Set recurring contribution [{$rcontribution['id']}] to 'Completed'. (set contribution_status_id=1)";
+            }
+          }
+        }
+      }
+    }
+
+    // sort by start_date and test for overlap
+    uasort($rcontributions, '_CRM_Rcont_Updater_compare_start_dates');
+    $last_rcur = NULL;
+    foreach ($rcontributions as &$rcontribution) {
+      if (empty($rcontribution['start_date'])) continue;
+
+      // check if there is an obvious overlap
+      if ($last_rcur) {
+        if (!empty($last_rcur['end_date'])) {
+          if ($last_rcur['end_date'] > $rcontribution['start_date']) {
+            $log[] = "PROBLEM: Recurring contributions [{$last_rcur['id']}] and [{$rcontribution['id']}] overlap. (adjust manually)";
+            // TODO: fix?
+          }
+        } else {
+          // last one has no end date...
+          $last_rcur_changes = array();
+          if (in_array($rcontribution['contribution_status_id'], $open_status_ids)) {
+            // ... but there is an active follow-up:
+            $log[] = "PROBLEM: Recurring contribution [{$last_rcur['id']}] is succeeded and overlapped by [{$rcontribution['id']}].";
+            $last_rcur['end_date']         = $rcontribution['start_date'];
+            $last_rcur_changes['end_date'] = $last_rcur['end_date'];
+            if (!in_array($last_rcur['contribution_status_id'], $completed_status_ids)) {
+              $last_rcur['contribution_status_id']         = CRM_Core_OptionGroup::getValue('contribution_status', 'Completed', 'name');
+              $last_rcur_changes['contribution_status_id'] = $last_rcur['contribution_status_id'];
+            }
+          }
+
+          if (!empty($last_rcur_changes)) {
+            if (!empty($params['fix_sequence'])) {
+              if (!empty($last_rcur_changes['contribution_status_id']))
+                $log[] = "FIXED: Set status for [{$last_rcur['id']}] to 'Completed'.";
+              if (!empty($last_rcur_changes['end_date']))
+                $log[] = "FIXED: Set end date for [{$last_rcur['id']}] to '{$last_rcur_changes['end_date']}'.";
+              $last_rcur_changes['id'] = $last_rcur['id'];
+              civicrm_api3('ContributionRecur', 'create', $last_rcur_changes);
+            } else {
+              if (!empty($last_rcur_changes['contribution_status_id']))
+                $log[] = "SUGGESTION: Set status for [{$last_rcur['id']}] to 'Completed'. (set fix_sequence=1)";
+              if (!empty($last_rcur_changes['end_date']))
+                $log[] = "SUGGESTION: Set end date for [{$last_rcur['id']}] to '{$last_rcur_changes['end_date']}'. (set fix_sequence=1)";
+            }
+          }
+        }
+      }
+
+      $last_rcur = &$rcontribution;
+    }
+
+    return $log;
+  }
+
+
+}
+
+
+/**
+ * compare function for self::mendRecurringContributions
+ */
+function _CRM_Rcont_Updater_compare_start_dates($a, $b) {
+  if ($a['start_date'] == $b['start_date']) {
+    return 0;
+  } else {
+    return ($a['start_date'] < $b['start_date']) ? -1 : 1;
+  }
 }
