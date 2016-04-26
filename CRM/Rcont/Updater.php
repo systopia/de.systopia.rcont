@@ -198,7 +198,13 @@ class CRM_Rcont_Updater {
       // they shold have a certain length
       if (!empty($rcontribution['end_date'])) {
         $duration = strtotime($rcontribution['end_date']) - strtotime($rcontribution['start_date']);
-        TODO
+        if ($duration < 0) {
+          $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] has a negative duration ({$rcontribution['start_date']} - {$rcontribution['end_date']})";
+          $log[] = "SUGGESTION: Manually adjust or delete recurring contribution [{$rcontribution['id']}]";
+        } elseif ($duration < (24 * 60 * 60)) {
+          $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] is less than a day long ({$rcontribution['start_date']} - {$rcontribution['end_date']})";
+          $log[] = "SUGGESTION: Manually delete recurring contribution [{$rcontribution['id']}]";
+        } 
       }
 
       // all ended recurring contributions should have an end_date
