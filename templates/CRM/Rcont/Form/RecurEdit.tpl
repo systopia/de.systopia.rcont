@@ -20,7 +20,11 @@
     </tr>
     <tr class="crm-rcontribution-form-block-amount">
       <td class="label">{$form.amount.label}</td>
-      <td class="content">{$form.amount.html}&nbsp;GBP</td>
+      <td class="content">{$form.amount.html}</td>
+    </tr>
+    <tr class="crm-rcontribution-form-block-amount">
+      <td class="label">{$form.currency.label}</td>
+      <td class="content">{$form.currency.html}</td>
     </tr>
     <tr class="crm-rcontribution-form-block-frequency">
       <td class="label">{$form.frequency.label}</td>

@@ -58,13 +58,19 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // LOAD lists
     $campaign_query = civicrm_api3('Campaign', 'get', array('version'=>3, 'is_active'=>1, 'option.limit' => 9999, 'option.sort'=>'title'));
-    $campaigns = array();
+    $campaigns = array(0 => ts('- none -'));
     foreach ($campaign_query['values'] as $campaign_id => $campaign) {
       $campaigns[$campaign_id] = $campaign['title'];
     }
 
-    $cycle_day_list = range(0, 30);
+    // get currency
+    $currencies = CRM_Core_OptionGroup::values('currencies_enabled');
+
+    $cycle_day_list = range(0, 31);
     unset($cycle_day_list[0]);
+    $cycle_day_list[29] = "29 " . ts('(may cause problems)');
+    $cycle_day_list[30] = "30 " . ts('(may cause problems)');
+    $cycle_day_list[31] = "31 " . ts('(may cause problems)');
 
     $frequencies = array(
       '1-month'   => ts('monthly'),
@@ -85,6 +91,23 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       true
     );
     $this->addRule('amount', "Please enter a valid amount.", 'money');
+
+    $currency = $this->add(
+      'select',
+      'currency',
+      ts('Currency'),
+      $currencies,
+      true,
+      array('class' => 'crm-select2')
+    );
+    $selected_currency = $this->getCurrentValue('currency', $rcontribution);
+    if ($selected_currency) {
+      $currency->setSelected($selected_currency);
+    } else {
+      $config = CRM_Core_Config::singleton();
+      $currency->setSelected($config->defaultCurrency);
+    }
+
 
     $frequency = $this->add(
       'select',
@@ -108,7 +131,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $campaign_id = $this->add(
       'select',
       'campaign_id',
-      ts('Destination Code'),
+      ts('Campaign'),
       $campaigns,
       true,
       array('class' => 'crm-select2')
@@ -219,12 +242,15 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $rcontribution = array(
       'contact_id'             => $values['contact_id'],
       'amount'                 => $values['amount'],
-      'currency'               => 'GBP',
+      'currency'               => $values['currency'],
       'cycle_day'              => $values['cycle_day'],
-      'campaign_id'            => $values['campaign_id'],
       'contribution_status_id' => $values['contribution_status_id'],
       'financial_type_id'      => $values['financial_type_id'],
       );
+
+    if (!empty($values['campaign_id'])) {
+      $rcontribution['campaign_id'] = $values['campaign_id'];
+    }
 
     // set ID (causes update instead of create)
     if (!empty($values['rcontribution_id'])) {
