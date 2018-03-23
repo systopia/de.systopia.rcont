@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -80,7 +80,7 @@ function civicrm_api3_contribution_recur_mend($params) {
         $log[$query->contact_id] = $logs;
       } else {
         $log[$query->contact_id] = array_merge($log[$query->contact_id], $logs);
-      }      
+      }
     }
   }
 
@@ -102,7 +102,7 @@ function _civicrm_api3_contribution_recur_mend_spec(&$params) {
   // exclude_ids
   // contact_id
   // complete_by_end_date
-  
+
 
   // // rcont_create,rcont_delete,rcont_update,assign_contributions
   // // if true, will assign the contributions to the respective recurring contributions

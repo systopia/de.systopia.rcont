@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -13,13 +13,13 @@
 | copyright header is strictly prohibited without        |
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
- 
+
 /**
  * Performs DB changes based on the data produced by the CRM_Rcont_Analyser
  */
 class CRM_Rcont_Updater {
 
-  /** 
+  /**
    * analyse the given contact for recurring contributions
    *
    * @return a list of recurring contributions
@@ -46,7 +46,7 @@ class CRM_Rcont_Updater {
           }
         } elseif (!$change['match']) {
           // this is a 'update' action
-          if (!empty($params['rcont_update'])) {          
+          if (!empty($params['rcont_update'])) {
             self::updateRecurringContribution($change['from'], $change['to']);
             $old = CRM_Rcont_Analyser::recurringContributiontoString($change['from']);
             $new = CRM_Rcont_Analyser::recurringContributiontoString($change['to']);
@@ -69,7 +69,7 @@ class CRM_Rcont_Updater {
         file_put_contents($params['change_log'], $log_entry . "\n\n", FILE_APPEND);
       }
     }
-    
+
     return $changes;
   }
 
@@ -132,7 +132,7 @@ class CRM_Rcont_Updater {
     $data['id'] = $rcurFrom['id'];
     $data['is_test'] = 0;
     $data['modified_date'] = date('Ymdhis');
-    
+
     // move end date (if exists)
     if (!empty($rcurFrom['end_date'])) {
       $old_end_date = strtotime($rcurFrom['end_date']);
@@ -169,7 +169,7 @@ class CRM_Rcont_Updater {
 
 
   /**
-   * Will look into the group of recurring contribtions and check/mend 
+   * Will look into the group of recurring contribtions and check/mend
    * common inconsitencies:
    *  1. overlap in time => will end the older ones
    */
@@ -204,7 +204,7 @@ class CRM_Rcont_Updater {
         } elseif ($duration < (24 * 60 * 60)) {
           $log[] = "PROBLEM: Recurring contribution [{$rcontribution['id']}] is less than a day long ({$rcontribution['start_date']} - {$rcontribution['end_date']})";
           $log[] = "SUGGESTION: Manually delete recurring contribution [{$rcontribution['id']}]";
-        } 
+        }
       }
 
       // all ended recurring contributions should have an end_date

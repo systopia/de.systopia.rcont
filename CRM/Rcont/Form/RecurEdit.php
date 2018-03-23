@@ -1,8 +1,9 @@
 <?php
 /*-------------------------------------------------------+
-| YfC UI modicications                                   |
-| Copyright (C) 2015 SYSTOPIA                            |
+| de.systopia.rcont - Analyse Recurring Contributions    |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
+| http://www.systopia.de/                                |
 +--------------------------------------------------------+
 | This program is released as free software under the    |
 | Affero GPL license. You can redistribute it and/or     |
@@ -74,7 +75,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     $status_list = CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
 
-    
+
     // FORM ELEMENTS
     $this->add(
       'text',
@@ -139,14 +140,14 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $this->addDate(
       'start_date',
       'Begins',
-      true, 
+      true,
       array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('start_date', $rcontribution))
       );
 
     $this->addDate(
       'end_date',
       'Ends',
-      false, 
+      false,
       array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('end_date', $rcontribution))
       );
 
@@ -185,7 +186,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('value' => $contact_id),
       false
     );
-    
+
     $this->add('text', 'rcontribution_id', '', array('value' => $rcontribution_id, 'hidden'=>1), true);
 
 
@@ -234,7 +235,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $period = preg_split("/-/", $values['frequency']);
     $rcontribution['frequency_interval'] = $period[0];
     $rcontribution['frequency_unit']     = $period[1];
-    
+
     // add dates
     $rcontribution['start_date']         = date('Y-m-d', strtotime($values['start_date']));
     if (!empty($rcontribution['end_date'])) {

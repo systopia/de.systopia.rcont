@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -23,7 +23,7 @@ function civicrm_api3_contribution_recur_analyse($params) {
   if (!empty($params['contact_id'])) {
     // analyse one single contact
     $recurring_contributions = CRM_Rcont_Analyser::evaluateContactRcur($params['contact_id'], $params);
-  
+
   } elseif (!empty($params['bulk_count'])) {
     // analyse chunk of contacts
     $recurring_contributions = array();
@@ -62,10 +62,10 @@ function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
   $params['reset'] = array('api.required' => 0,
                            'api.default' => 0);
 
-  // restrict to the given payment instruments. 
+  // restrict to the given payment instruments.
   $params['payment_instrument_ids'] = array('api.required' => 0);
 
-  // restrict to the given payment instruments. 
+  // restrict to the given payment instruments.
   $params['financial_type_ids'] = array('api.required' => 0);
 
   // tolerance in days

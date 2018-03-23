@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -13,7 +13,7 @@
 | copyright header is strictly prohibited without        |
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
- 
+
 /**
  * Configuration page for the Project60 Membership extension
  */
@@ -28,7 +28,7 @@ class CRM_Rcont_Sequence {
   protected $contribution_sequence    = array();
   protected $cycle_tolerance          = NULL;
   protected $max_skips                = 0;       // tolerate missing $max_skips periods
-  protected $max_skip_time            = 0;       // tolerate a maximum of $max_skip_time seconds of skipped periods. 
+  protected $max_skip_time            = 0;       // tolerate a maximum of $max_skip_time seconds of skipped periods.
   protected $hash                     = '';
 
   public static $identical_fields  = array(
@@ -68,7 +68,7 @@ class CRM_Rcont_Sequence {
   }
 
   /**
-   * check if the given contribution matches the 
+   * check if the given contribution matches the
    * sequence.
    *
    * @return intervals (usually 1, but more if skip allowed). FALSE if it doesn't match
@@ -88,13 +88,13 @@ class CRM_Rcont_Sequence {
     }
 
     $this_receive_date = strtotime($contribution['receive_date']);
-    
+
     for ($skips = 0; $skips <= $this->max_skips; $skips++) {
       // all attributes seem o.k., tolerance
       $last_receive_date = $this->expectedReceiveDate(1 + $skips);
       $offset = ($this_receive_date - $last_receive_date);
 
-      // if the skip time 
+      // if the skip time
       if (abs($offset) > $this->max_skip_time) break;
 
       // error_log("Expd date: " . date('Y-m-d H:i:s', $last_receive_date));
@@ -121,7 +121,7 @@ class CRM_Rcont_Sequence {
    * add a contribution to the sequence
    * the contribution should have previously been checked with the matches() method
    *
-   * @param $contribution the contribtuion to add 
+   * @param $contribution the contribtuion to add
    * @param $intervals    the intervals after the current end (usually 1, but more when skips occur)
    */
   public function add($contribution, $intervals = 1) {
@@ -177,7 +177,7 @@ class CRM_Rcont_Sequence {
         }
         $best_offset = $offset_sum / count($this->cycle_day_offset_list);
         break;
-      
+
       default:
       case 'no_adjustment':
         $best_offset = 0;
@@ -213,7 +213,7 @@ class CRM_Rcont_Sequence {
   }
 
   /**
-   * simply add all contained contributions to the list 
+   * simply add all contained contributions to the list
    *  with a reference to this object
    */
   public function addContributionsToList(&$matched_contributions) {

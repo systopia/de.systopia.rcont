@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -13,7 +13,7 @@
 | copyright header is strictly prohibited without        |
 | written permission from the original author(s).        |
 +--------------------------------------------------------*/
- 
+
 /**
  * Analyses contribtions and recurring contributions
  */
@@ -38,7 +38,7 @@ class CRM_Rcont_Analyser {
     'frequency_interval'    => 100,
     'frequency_unit'        => 100);
 
-  /** 
+  /**
    * analyse the given contact for recurring contributions
    *
    * @return a list of recurring contributions
@@ -87,7 +87,7 @@ class CRM_Rcont_Analyser {
     // match extracted with existing contribtions
     $changes = CRM_Rcont_Analyser::matchRecurringContributions($existing_contributions, $extracted_contributions);
     // error_log("PROPOSED CHANGES: ".print_r($changes,1));
-  
+
     // ANALYSIS LOG
     if (!empty($params['analysis_log']) && !empty($changes)) {
       $log_entry = "Contact [$contact_id]:\n";
@@ -98,12 +98,12 @@ class CRM_Rcont_Analyser {
           $message = "End/delete recurring contribution: " . self::recurringContributiontoString($change['from']);
         } elseif ($change['match']) {
           $old = self::recurringContributiontoString($change['from']);
-          $message = "Confirmed recurring contribution [{$change['from']['id']}] ($old)"; 
+          $message = "Confirmed recurring contribution [{$change['from']['id']}] ($old)";
         } else {
           $old = self::recurringContributiontoString($change['from']);
           $new = self::recurringContributiontoString($change['to']);
           $percent = (int) $change['similarity'];
-          $message = "Update recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new"; 
+          $message = "Update recurring contribution ({$percent}%) [{$change['from']['id']}]: $old => $new";
         }
         $log_entry .= $message . "\n";
       }
@@ -115,14 +115,14 @@ class CRM_Rcont_Analyser {
     if (!empty($params['apply_changes'])) {
       CRM_Rcont_Updater::updateContactRcur($contact_id, $changes, $params);
     }
-    
+
     return $changes;
   }
 
 
 
   /**
-   * try to deduce the currently active recurring contributions from 
+   * try to deduce the currently active recurring contributions from
    *  patterns in the contact's contributions
    */
   public static function extractRecurringContributions($contact_id, $params) {
@@ -142,8 +142,8 @@ class CRM_Rcont_Analyser {
       $sequences = array();
 
       $sql = "SELECT *
-              FROM civicrm_contribution 
-              WHERE contact_id = $contact_id 
+              FROM civicrm_contribution
+              WHERE contact_id = $contact_id
                 AND (is_test = 0 OR is_test IS NULL)
                 AND total_amount > 0
                 AND contribution_status_id = 1
@@ -207,7 +207,7 @@ class CRM_Rcont_Analyser {
 
 
   /**
-   * try to deduce the currently active recurring contributions from 
+   * try to deduce the currently active recurring contributions from
    *  patterns in the contact's contributions
    */
   public static function currentRecurringContributions($contact_id, $params) {
@@ -223,8 +223,8 @@ class CRM_Rcont_Analyser {
     }
     $interval_sql = implode(' OR ', $interval_conditions);
 
-    $sql = "SELECT id FROM civicrm_contribution_recur 
-            WHERE `contact_id` = $contact_id 
+    $sql = "SELECT id FROM civicrm_contribution_recur
+            WHERE `contact_id` = $contact_id
               AND (`end_date` IS NULL OR `end_date` >= DATE('$last_sequence_start'))
               AND (`contribution_status_id` IN (1,2,5))
               AND ($interval_sql);";
@@ -321,7 +321,7 @@ class CRM_Rcont_Analyser {
           }
           $similarity -= $weight * $factor;
           break;
-        
+
         case 'cycle_day':
           $cycle_day_diff = abs($existing_rcont['cycle_day'] - $extracted_rcont['cycle_day']);
           // mind rolling diff (eg. 30th-2nd)

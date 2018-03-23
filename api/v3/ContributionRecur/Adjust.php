@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016 SYSTOPIA                            |
+| Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -17,7 +17,7 @@
 include_once 'Analyse.php';
 
 /**
- * basically the same as ContributionRecur:analyse, 
+ * basically the same as ContributionRecur:analyse,
  * but adjusting the recurring contributions according to the
  * findings
  */
