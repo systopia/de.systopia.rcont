@@ -42,6 +42,10 @@
       <td class="label">{$form.contribution_status_id.label}</td>
       <td class="content">{$form.contribution_status_id.html}</td>
     </tr>
+    <tr class="crm-rcontribution-form-block-payment_instrument_id">
+      <td class="label">{$form.payment_instrument_id.label}</td>
+      <td class="content">{$form.payment_instrument_id.html}</td>
+    </tr>
     <tr class="crm-rcontribution-form-block-financial_type_id">
       <td class="label">{$form.financial_type_id.label}</td>
       <td class="content">{$form.financial_type_id.html}</td>

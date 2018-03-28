@@ -138,6 +138,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     );
     $campaign_id->setSelected($this->getCurrentValue('campaign_id', $rcontribution));
 
+    $payment_instrument_id = $this->add(
+      'select',
+      'payment_instrument_id',
+      ts('Payment Instrument'),
+      CRM_Contribute_PseudoConstant::paymentInstrument(),
+      true,
+      array('class' => 'crm-select2')
+    );
+    $payment_instrument_id->setSelected($this->getCurrentValue('payment_instrument_id', $rcontribution));
+
     $financial_type_id = $this->add(
       'select',
       'financial_type_id',
@@ -246,6 +256,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       'cycle_day'              => $values['cycle_day'],
       'contribution_status_id' => $values['contribution_status_id'],
       'financial_type_id'      => $values['financial_type_id'],
+      'payment_instrument_id'  => $values['payment_instrument_id'],
       );
 
     if (!empty($values['campaign_id'])) {
