@@ -275,8 +275,10 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // add dates
     $rcontribution['start_date']         = date('Y-m-d', strtotime($values['start_date']));
-    if (!empty($rcontribution['end_date'])) {
+    if (!empty($values['end_date'])) {
       $rcontribution['end_date']         = date('Y-m-d', strtotime($values['end_date']));
+    } else {
+      $rcontribution['end_date']         = '';
     }
 
     // add non-required values
