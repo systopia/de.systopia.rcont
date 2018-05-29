@@ -23,6 +23,8 @@ require_once 'CRM/Core/Form.php';
  */
 class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
+  protected $_eligiblePaymentInstruments = NULL;
+
   public function buildQuickForm() {
     $rcontribution_id = 0;
     $contact_id       = 0;
@@ -46,10 +48,19 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       CRM_Utils_System::setTitle('Create Recurring Contribution');
     } else {
       // no rcid or cid: ERROR
-      CRM_Core_Session::setStatus('Error. You need provide cid or rcid.', 'Error', 'error');
+      CRM_Core_Session::setStatus('Error. You have to provide cid or rcid.', 'Error', 'error');
       $dashboard_url = CRM_Utils_System::url('civicrm/dashboard', 'reset=1');
       CRM_Utils_System::redirect($dashboard_url);
       return;
+    }
+
+    // make sure this is not a SEPA mandate
+    if ($rcontribution_id && $rcontribution && !empty($rcontribution['payment_instrument_id'])) {
+      $non_sepa_pis = $this->getEligiblePaymentInstruments();
+      if (empty($non_sepa_pis[$rcontribution['payment_instrument_id']])) {
+        CRM_Core_Session::setStatus('You cannot edit SEPA mandates with this form.', 'Error', 'error');
+        return;
+      }
     }
 
     // LOAD contact
@@ -142,7 +153,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       'select',
       'payment_instrument_id',
       ts('Payment Instrument'),
-      CRM_Contribute_PseudoConstant::paymentInstrument(),
+      $this->getEligiblePaymentInstruments(),
       true,
       array('class' => 'crm-select2')
     );
@@ -325,5 +336,23 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     } else {
       return date('m/d/Y', strtotime($date));
     }
+  }
+
+  /**
+   * Get the list of id -> label paymentinstruments
+   * This excludes CiviSEPA PIs
+   */
+  protected function getEligiblePaymentInstruments() {
+    if ($this->_eligiblePaymentInstruments === NULL) {
+      $query = civicrm_api3('OptionValue', 'get', array(
+          'option_group_id' => 'payment_instrument',
+          'name'            => ['NOT IN' => ['RCUR', 'FRST', 'OOFF']],
+          'return'          => 'value,label'));
+      $this->_eligiblePaymentInstruments = array();
+      foreach ($query['values'] as $pi) {
+        $this->_eligiblePaymentInstruments[$pi['value']] = $pi['label'];
+      }
+    }
+    return $this->_eligiblePaymentInstruments;
   }
 }
