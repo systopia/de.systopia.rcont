@@ -56,7 +56,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // make sure this is not a SEPA mandate
     if ($rcontribution_id && $rcontribution && !empty($rcontribution['payment_instrument_id'])) {
-      $non_sepa_pis = $this->getEligiblePaymentInstruments();
+      $non_sepa_pis = $this->getEligiblePaymentInstruments($rcontribution['payment_instrument_id']);
       if (empty($non_sepa_pis[$rcontribution['payment_instrument_id']])) {
         CRM_Core_Session::setStatus('You cannot edit SEPA mandates with this form.', 'Error', 'error');
         return;
@@ -149,15 +149,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     );
     $campaign_id->setSelected($this->getCurrentValue('campaign_id', $rcontribution));
 
+    $current_payment_instrument = $this->getCurrentValue('payment_instrument_id', $rcontribution);
     $payment_instrument_id = $this->add(
       'select',
       'payment_instrument_id',
       ts('Payment Instrument'),
-      $this->getEligiblePaymentInstruments(),
+      $this->getEligiblePaymentInstruments($current_payment_instrument),
       true,
       array('class' => 'crm-select2')
     );
-    $payment_instrument_id->setSelected($this->getCurrentValue('payment_instrument_id', $rcontribution));
+    $payment_instrument_id->setSelected($current_payment_instrument);
 
     $financial_type_id = $this->add(
       'select',
@@ -342,15 +343,17 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
    * Get the list of id -> label paymentinstruments
    * This excludes CiviSEPA PIs
    */
-  protected function getEligiblePaymentInstruments() {
+  protected function getEligiblePaymentInstruments($current_payment_instrument) {
     if ($this->_eligiblePaymentInstruments === NULL) {
       $query = civicrm_api3('OptionValue', 'get', array(
           'option_group_id' => 'payment_instrument',
           'name'            => ['NOT IN' => ['RCUR', 'FRST', 'OOFF']],
-          'return'          => 'value,label'));
+          'return'          => 'value,label,is_active'));
       $this->_eligiblePaymentInstruments = array();
       foreach ($query['values'] as $pi) {
-        $this->_eligiblePaymentInstruments[$pi['value']] = $pi['label'];
+        if ($pi['is_active'] || $pi['value'] == $current_payment_instrument) {
+          $this->_eligiblePaymentInstruments[$pi['value']] = $pi['label'];
+        }
       }
     }
     return $this->_eligiblePaymentInstruments;
