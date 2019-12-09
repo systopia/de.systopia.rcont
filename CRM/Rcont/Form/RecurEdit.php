@@ -251,14 +251,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
   public function postProcess() {
     $values = $this->exportValues();
 
-    // store last selection (per user)
-    $session = CRM_Core_Session::singleton();
-    $user_contact = (int) $session->get('userID');
-    CRM_Core_BAO_Setting::setItem($values['campaign_id'],            'de.systopia.rcont', 'last_campaign_id', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['cycle_day'],              'de.systopia.rcont', 'last_cycle_day', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['financial_type_id'],      'de.systopia.rcont', 'last_financial_type_id', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['frequency'],              'de.systopia.rcont', 'last_frequency', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['contribution_status_id'], 'de.systopia.rcont', 'last_contribution_status_id', NULL, $user_contact);
+    if (Civi::settings()->get('rcont_remember_values')) {
+      // store last selection (per user)
+      $session = CRM_Core_Session::singleton();
+      $user_contact = (int) $session->get('userID');
+      CRM_Core_BAO_Setting::setItem($values['campaign_id'],            'de.systopia.rcont', 'last_campaign_id', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['cycle_day'],              'de.systopia.rcont', 'last_cycle_day', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['financial_type_id'],      'de.systopia.rcont', 'last_financial_type_id', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['frequency'],              'de.systopia.rcont', 'last_frequency', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['contribution_status_id'], 'de.systopia.rcont', 'last_contribution_status_id', NULL, $user_contact);
+    }
 
     // compile contribution object with required values
     $rcontribution = array(
@@ -320,11 +322,12 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       return CRM_Utils_array::value($key, $this->_submitValues);
     } elseif (CRM_Utils_Array::value($key, $rcontribution)) {
       return CRM_Utils_Array::value($key, $rcontribution);
-    } else {
+    } elseif (Civi::settings()->get('rcont_remember_values')) {
       $session = CRM_Core_Session::singleton();
       $user_contact = (int) $session->get('userID');
       return CRM_Core_BAO_Setting::getItem('de.systopia.rcont', "last_$key", NULL, NULL, $user_contact);
     }
+    return NULL;
   }
 
   /**
