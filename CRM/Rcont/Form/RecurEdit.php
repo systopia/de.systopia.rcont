@@ -69,7 +69,14 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // LOAD lists
     $campaign_query = civicrm_api3('Campaign', 'get', array('version'=>3, 'is_active'=>1, 'option.limit' => 9999, 'option.sort'=>'title'));
-    $campaigns = array(0 => ts('- none -'));
+    // this looks odd, but it gives us two things:
+    // - an empty default option that triggers form validation (array key '')
+    // - a selectable "none" option that passes form validation and means the
+    //   user explicitly decided not to assign a campaign
+    $campaigns = [
+      '' => ts('- none -'),
+      0  => ts('- none -'),
+    ];
     foreach ($campaign_query['values'] as $campaign_id => $campaign) {
       $campaigns[$campaign_id] = $campaign['title'];
     }
@@ -77,20 +84,23 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     // get currency
     $currencies = CRM_Core_OptionGroup::values('currencies_enabled');
 
-    $cycle_day_list = range(0, 31);
-    unset($cycle_day_list[0]);
+    $cycle_day_list = [
+      '' => ts('- none -'),
+    ];
+    $cycle_day_list += range(1, 31);
     $cycle_day_list[29] = "29 " . ts('(may cause problems)');
     $cycle_day_list[30] = "30 " . ts('(may cause problems)');
     $cycle_day_list[31] = "31 " . ts('(may cause problems)');
 
     $frequencies = array(
+      ''          => ts('- none -'),
       '1-month'   => ts('monthly'),
       '3-month'   => ts('quartely'),
       '6-month'   => ts('semi-anually'),
       '1-year'    => ts('anually'),
       );
 
-    $status_list = CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
+    $status_list = ['' => ts('- none -')] + CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
 
 
     // FORM ELEMENTS
@@ -150,6 +160,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $campaign_id->setSelected($this->getCurrentValue('campaign_id', $rcontribution));
 
     $current_payment_instrument = $this->getCurrentValue('payment_instrument_id', $rcontribution);
+    if (empty($current_payment_instrument)) {
+      // use the default payment instrument
+      $current_payment_instrument = key(CRM_Core_OptionGroup::values(
+        'payment_instrument',
+        FALSE,
+        FALSE,
+        FALSE,
+        'AND is_default = 1'
+      ));
+    }
     $payment_instrument_id = $this->add(
       'select',
       'payment_instrument_id',
@@ -164,7 +184,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       'select',
       'financial_type_id',
       ts('Financial Type'),
-      CRM_Contribute_PseudoConstant::financialType(),
+      ['' => ts('- none -')] + CRM_Contribute_PseudoConstant::financialType(),
       true,
       array('class' => 'crm-select2')
     );
@@ -251,14 +271,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
   public function postProcess() {
     $values = $this->exportValues();
 
-    // store last selection (per user)
-    $session = CRM_Core_Session::singleton();
-    $user_contact = (int) $session->get('userID');
-    CRM_Core_BAO_Setting::setItem($values['campaign_id'],            'de.systopia.rcont', 'last_campaign_id', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['cycle_day'],              'de.systopia.rcont', 'last_cycle_day', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['financial_type_id'],      'de.systopia.rcont', 'last_financial_type_id', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['frequency'],              'de.systopia.rcont', 'last_frequency', NULL, $user_contact);
-    CRM_Core_BAO_Setting::setItem($values['contribution_status_id'], 'de.systopia.rcont', 'last_contribution_status_id', NULL, $user_contact);
+    if (Civi::settings()->get('rcont_remember_values')) {
+      // store last selection (per user)
+      $session = CRM_Core_Session::singleton();
+      $user_contact = (int) $session->get('userID');
+      CRM_Core_BAO_Setting::setItem($values['campaign_id'],            'de.systopia.rcont', 'last_campaign_id', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['cycle_day'],              'de.systopia.rcont', 'last_cycle_day', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['financial_type_id'],      'de.systopia.rcont', 'last_financial_type_id', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['frequency'],              'de.systopia.rcont', 'last_frequency', NULL, $user_contact);
+      CRM_Core_BAO_Setting::setItem($values['contribution_status_id'], 'de.systopia.rcont', 'last_contribution_status_id', NULL, $user_contact);
+    }
 
     // compile contribution object with required values
     $rcontribution = array(
@@ -320,11 +342,15 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       return CRM_Utils_array::value($key, $this->_submitValues);
     } elseif (CRM_Utils_Array::value($key, $rcontribution)) {
       return CRM_Utils_Array::value($key, $rcontribution);
-    } else {
+    } elseif (Civi::settings()->get('rcont_remember_values')) {
       $session = CRM_Core_Session::singleton();
       $user_contact = (int) $session->get('userID');
       return CRM_Core_BAO_Setting::getItem('de.systopia.rcont', "last_$key", NULL, NULL, $user_contact);
+    } else {
+      // custom form field defaults can be configured via rcont_default_field_name settings
+      return Civi::settings()->get("rcont_default_{$key}");
     }
+    return NULL;
   }
 
   /**
