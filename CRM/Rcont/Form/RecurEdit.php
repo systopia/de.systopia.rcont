@@ -346,6 +346,9 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       $session = CRM_Core_Session::singleton();
       $user_contact = (int) $session->get('userID');
       return CRM_Core_BAO_Setting::getItem('de.systopia.rcont', "last_$key", NULL, NULL, $user_contact);
+    } else {
+      // custom form field defaults can be configured via rcont_default_field_name settings
+      return Civi::settings()->get("rcont_default_{$key}");
     }
     return NULL;
   }
