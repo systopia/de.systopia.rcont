@@ -69,7 +69,14 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // LOAD lists
     $campaign_query = civicrm_api3('Campaign', 'get', array('version'=>3, 'is_active'=>1, 'option.limit' => 9999, 'option.sort'=>'title'));
-    $campaigns = array(0 => ts('- none -'));
+    // this looks odd, but it gives us two things:
+    // - an empty default option that triggers form validation (array key '')
+    // - a selectable "none" option that passes form validation and means the
+    //   user explicitly decided not to assign a campaign
+    $campaigns = [
+      '' => ts('- none -'),
+      0  => ts('- none -'),
+    ];
     foreach ($campaign_query['values'] as $campaign_id => $campaign) {
       $campaigns[$campaign_id] = $campaign['title'];
     }
@@ -77,20 +84,23 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     // get currency
     $currencies = CRM_Core_OptionGroup::values('currencies_enabled');
 
-    $cycle_day_list = range(0, 31);
-    unset($cycle_day_list[0]);
+    $cycle_day_list = [
+      '' => ts('- none -'),
+    ];
+    $cycle_day_list += range(1, 31);
     $cycle_day_list[29] = "29 " . ts('(may cause problems)');
     $cycle_day_list[30] = "30 " . ts('(may cause problems)');
     $cycle_day_list[31] = "31 " . ts('(may cause problems)');
 
     $frequencies = array(
+      ''          => ts('- none -'),
       '1-month'   => ts('monthly'),
       '3-month'   => ts('quartely'),
       '6-month'   => ts('semi-anually'),
       '1-year'    => ts('anually'),
       );
 
-    $status_list = CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
+    $status_list = ['' => ts('- none -')] + CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
 
 
     // FORM ELEMENTS
@@ -150,6 +160,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $campaign_id->setSelected($this->getCurrentValue('campaign_id', $rcontribution));
 
     $current_payment_instrument = $this->getCurrentValue('payment_instrument_id', $rcontribution);
+    if (empty($current_payment_instrument)) {
+      // use the default payment instrument
+      $current_payment_instrument = key(CRM_Core_OptionGroup::values(
+        'payment_instrument',
+        FALSE,
+        FALSE,
+        FALSE,
+        'AND is_default = 1'
+      ));
+    }
     $payment_instrument_id = $this->add(
       'select',
       'payment_instrument_id',
@@ -164,7 +184,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       'select',
       'financial_type_id',
       ts('Financial Type'),
-      CRM_Contribute_PseudoConstant::financialType(),
+      ['' => ts('- none -')] + CRM_Contribute_PseudoConstant::financialType(),
       true,
       array('class' => 'crm-select2')
     );
