@@ -95,7 +95,9 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $frequencies = array(
       ''          => ts('- none -'),
       '1-month'   => ts('monthly'),
+      '2-month'   => ts('bi-monthly'),
       '3-month'   => ts('quartely'),
+      '4-month'   => ts('trimestral'),
       '6-month'   => ts('semi-anually'),
       '1-year'    => ts('anually'),
       );
