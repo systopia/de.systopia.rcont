@@ -87,7 +87,10 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $cycle_day_list = [
       '' => ts('- none -'),
     ];
-    $cycle_day_list += range(1, 31);
+    $cycle_day_list += range(0, 31);
+    // remove the first item, resulting in a one-based array where array keys
+    // match the label
+    unset($cycle_day_list[0]);
     $cycle_day_list[29] = "29 " . ts('(may cause problems)');
     $cycle_day_list[30] = "30 " . ts('(may cause problems)');
     $cycle_day_list[31] = "31 " . ts('(may cause problems)');
