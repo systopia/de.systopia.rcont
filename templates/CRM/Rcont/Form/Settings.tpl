@@ -1,27 +1,64 @@
-{* HEADER *}
+{*-------------------------------------------------------+
+| de.systopia.rcont - Recurring Contribution Tools       |
+| Copyright (C) 2016-2020 SYSTOPIA                       |
+| Author: B. Endres (endres@systopia.de)                 |
+| http://www.systopia.de/                                |
++--------------------------------------------------------+
+| This program is released as free software under the    |
+| Affero GPL license. You can redistribute it and/or     |
+| modify it under the terms of this license which you    |
+| can read by viewing the included agpl.txt or online    |
+| at www.gnu.org/licenses/agpl.html. Removal of this     |
+| copyright header is strictly prohibited without        |
+| written permission from the original author(s).        |
++-------------------------------------------------------*}
 
-<div class="crm-submit-buttons">
-{include file="CRM/common/formButtons.tpl" location="top"}
-</div>
+{crmScope extensionKey='de.systopia.xdedupe'}
+<h3>{ts}Create Default Values{/ts}</h3>
 
-{* FIELD EXAMPLE: OPTION 1 (AUTOMATIC LAYOUT) *}
-
-{foreach from=$elementNames item=elementName}
   <div class="crm-section">
-    <div class="label">{$form.$elementName.label}</div>
-    <div class="content">{$form.$elementName.html}</div>
+    <div class="label">{$form.currency.label}</div>
+    <div class="content">{$form.currency.html}</div>
     <div class="clear"></div>
   </div>
-{/foreach}
 
-{* FIELD EXAMPLE: OPTION 2 (MANUAL LAYOUT)
-
-  <div>
-    <span>{$form.favorite_color.label}</span>
-    <span>{$form.favorite_color.html}</span>
+  <div class="crm-section">
+    <div class="label">{$form.frequency.label}</div>
+    <div class="content">{$form.frequency.html}</div>
+    <div class="clear"></div>
   </div>
 
-{* FOOTER *}
-<div class="crm-submit-buttons">
-{include file="CRM/common/formButtons.tpl" location="bottom"}
-</div>
+  <div class="crm-section">
+    <div class="label">{$form.cycle_day.label}</div>
+    <div class="content">{$form.cycle_day.html}</div>
+    <div class="clear"></div>
+  </div>
+
+  <div class="crm-section">
+    <div class="label">{$form.campaign_id.label}</div>
+    <div class="content">{$form.campaign_id.html}</div>
+    <div class="clear"></div>
+  </div>
+
+  <div class="crm-section">
+    <div class="label">{$form.contribution_status_id.label}</div>
+    <div class="content">{$form.contribution_status_id.html}</div>
+    <div class="clear"></div>
+  </div>
+
+  <div class="crm-section">
+    <div class="label">{$form.payment_instrument_id.label}</div>
+    <div class="content">{$form.payment_instrument_id.html}</div>
+    <div class="clear"></div>
+  </div>
+
+  <div class="crm-section">
+    <div class="label">{$form.financial_type_id.label}</div>
+    <div class="content">{$form.financial_type_id.html}</div>
+    <div class="clear"></div>
+  </div>
+
+  <div class="crm-submit-buttons">
+    {include file="CRM/common/formButtons.tpl" location="bottom"}
+  </div>
+{/crmScope}
