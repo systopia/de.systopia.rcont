@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
-| de.systopia.rcont - Analyse Recurring Contributions    |
-| Copyright (C) 2016-2018 SYSTOPIA                       |
+| de.systopia.rcont - Recurring Contribution Tools       |
+| Copyright (C) 2016-2020 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -16,14 +16,14 @@
 
 require_once 'CRM/Core/Form.php';
 
+use CRM_Rcont_ExtensionUtil as E;
+
 /**
  * Form controller class
  *
  * @see http://wiki.civicrm.org/confluence/display/CRMDOC43/QuickForm+Reference
  */
 class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
-
-  protected $_eligiblePaymentInstruments = NULL;
 
   public function buildQuickForm() {
     $rcontribution_id = 0;
@@ -34,18 +34,27 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       $rcontribution_id = (int) $_REQUEST['rcid'];
       $rcontribution = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $rcontribution_id));
       $contact_id = $rcontribution['contact_id'];
+      $this->setExistingDefaults($rcontribution);
+
     } elseif (!empty($this->_submitValues['rcontribution_id'])) {
       $rcontribution_id = (int) $this->_submitValues['rcontribution_id'];
       $rcontribution = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $rcontribution_id));
       $contact_id = $rcontribution['contact_id'];
+      $contact_id = $rcontribution['contact_id'];
+        $this->setExistingDefaults($rcontribution);
+
     } elseif (!empty($_REQUEST['cid'])) {
       $contact_id = (int) $_REQUEST['cid'];
       $rcontribution = array('contact_id' => $contact_id);
       CRM_Utils_System::setTitle('Create Recurring Contribution');
+      $this->setDefaults(CRM_Rcont_Form_Settings::getRecurringDefaults());
+
     } elseif (!empty($this->_submitValues['contact_id'])) {
       $contact_id = (int) $this->_submitValues['contact_id'];
       $rcontribution = array('contact_id' => $contact_id);
       CRM_Utils_System::setTitle('Create Recurring Contribution');
+      $this->setDefaults(CRM_Rcont_Form_Settings::getRecurringDefaults());
+
     } else {
       // no rcid or cid: ERROR
       CRM_Core_Session::setStatus('Error. You have to provide cid or rcid.', 'Error', 'error');
@@ -56,7 +65,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     // make sure this is not a SEPA mandate
     if ($rcontribution_id && $rcontribution && !empty($rcontribution['payment_instrument_id'])) {
-      $non_sepa_pis = $this->getEligiblePaymentInstruments($rcontribution['payment_instrument_id']);
+      $non_sepa_pis = CRM_Rcont_Form_Settings::getPaymentInstruments($rcontribution['payment_instrument_id']);
       if (empty($non_sepa_pis[$rcontribution['payment_instrument_id']])) {
         CRM_Core_Session::setStatus('You cannot edit SEPA mandates with this form.', 'Error', 'error');
         return;
@@ -67,53 +76,21 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $contact = civicrm_api3('Contact', 'getsingle', array('id' => $contact_id));
     $this->assign('contact', $contact);
 
-    // LOAD lists
-    $campaign_query = civicrm_api3('Campaign', 'get', array('version'=>3, 'is_active'=>1, 'option.limit' => 9999, 'option.sort'=>'title'));
-    // this looks odd, but it gives us two things:
-    // - an empty default option that triggers form validation (array key '')
-    // - a selectable "none" option that passes form validation and means the
-    //   user explicitly decided not to assign a campaign
-    $campaigns = [
-      '' => ts('- none -'),
-      0  => ts('- none -'),
-    ];
-    foreach ($campaign_query['values'] as $campaign_id => $campaign) {
-      $campaigns[$campaign_id] = $campaign['title'];
-    }
-
-    // get currency
-    $currencies = CRM_Core_OptionGroup::values('currencies_enabled');
-
-    $cycle_day_list = [
-      '' => ts('- none -'),
-    ];
-    $cycle_day_list += range(0, 31);
-    // remove the first item, resulting in a one-based array where array keys
-    // match the label
-    unset($cycle_day_list[0]);
-    $cycle_day_list[29] = "29 " . ts('(may cause problems)');
-    $cycle_day_list[30] = "30 " . ts('(may cause problems)');
-    $cycle_day_list[31] = "31 " . ts('(may cause problems)');
-
-    $frequencies = array(
-      ''          => ts('- none -'),
-      '1-month'   => ts('monthly'),
-      '2-month'   => ts('bi-monthly'),
-      '3-month'   => ts('quartely'),
-      '4-month'   => ts('trimestral'),
-      '6-month'   => ts('semi-anually'),
-      '1-year'    => ts('anually'),
-      );
-
-    $status_list = ['' => ts('- none -')] + CRM_Core_OptionGroup::values('contribution_status', FALSE, FALSE, FALSE, NULL, 'label');
-
+    // get option lists
+    $current_payment_instrument = $this->getCurrentValue('payment_instrument_id', $rcontribution);
+    $payment_instruments = CRM_Rcont_Form_Settings::getPaymentInstruments($current_payment_instrument);
+    $campaigns = CRM_Rcont_Form_Settings::getCampaigns();
+    $currencies = CRM_Rcont_Form_Settings::getCurrencies();
+    $cycle_day_list = CRM_Rcont_Form_Settings::getCollectionDays();
+    $frequencies = CRM_Rcont_Form_Settings::getFrequencies();
+    $status_list = CRM_Rcont_Form_Settings::getContributionStatus();
 
     // FORM ELEMENTS
     $this->add(
       'text',
       'amount',
-      ts('Amount'),
-      array('value' => $this->getCurrentValue('amount', $rcontribution), 'size'=>4),
+      E::ts('Amount'),
+      ['size'=>4],
       true
     );
     $this->addRule('amount', "Please enter a valid amount.", 'money');
@@ -121,91 +98,57 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     $currency = $this->add(
       'select',
       'currency',
-      ts('Currency'),
+      E::ts('Currency'),
       $currencies,
       true,
       array('class' => 'crm-select2')
     );
-    $selected_currency = $this->getCurrentValue('currency', $rcontribution);
-    if ($selected_currency) {
-      $currency->setSelected($selected_currency);
-    } else {
-      $config = CRM_Core_Config::singleton();
-      $currency->setSelected($config->defaultCurrency);
-    }
-
 
     $frequency = $this->add(
       'select',
       'frequency',
-      ts('Frequency'),
+      E::ts('Frequency'),
       $frequencies,
       true,
       array('class' => 'crm-select2')
     );
-    $selected_frequency = $this->getCurrentValue('frequency', $rcontribution);
-    if ($selected_frequency) {
-      $frequency->setSelected($selected_frequency);
-    } else {
-      $frequency_interval = $this->getCurrentValue('frequency_interval', $rcontribution);
-      $frequency_unit     = $this->getCurrentValue('frequency_unit', $rcontribution);
-      if ($frequency_interval && $frequency_unit) {
-        $frequency->setSelected($frequency_interval . '-' . $frequency_unit);
-      }
-    }
 
     $campaign_id = $this->add(
       'select',
       'campaign_id',
-      ts('Campaign'),
+      E::ts('Campaign'),
       $campaigns,
       true,
       array('class' => 'crm-select2')
     );
-    $campaign_id->setSelected($this->getCurrentValue('campaign_id', $rcontribution));
 
-    $current_payment_instrument = $this->getCurrentValue('payment_instrument_id', $rcontribution);
-    if (empty($current_payment_instrument)) {
-      // use the default payment instrument
-      $current_payment_instrument = key(CRM_Core_OptionGroup::values(
-        'payment_instrument',
-        FALSE,
-        FALSE,
-        FALSE,
-        'AND is_default = 1'
-      ));
-    }
     $payment_instrument_id = $this->add(
       'select',
       'payment_instrument_id',
-      ts('Payment Instrument'),
-      $this->getEligiblePaymentInstruments($current_payment_instrument),
+      E::ts('Payment Instrument'),
+      $payment_instruments,
       true,
       array('class' => 'crm-select2')
     );
-    $payment_instrument_id->setSelected($current_payment_instrument);
 
     $financial_type_id = $this->add(
       'select',
       'financial_type_id',
-      ts('Financial Type'),
-      ['' => ts('- none -')] + CRM_Contribute_PseudoConstant::financialType(),
+      E::ts('Financial Type'),
+      CRM_Rcont_Form_Settings::getFinancialTypes(),
       true,
       array('class' => 'crm-select2')
     );
-    $financial_type_id->setSelected($this->getCurrentValue('financial_type_id', $rcontribution));
-
 
     // DATES
     $cycle_day = $this->add(
       'select',
       'cycle_day',
-      ts('Collection Day'),
+      E::ts('Collection Day'),
       $cycle_day_list,
       true,
       array('class' => 'crm-select2')
     );
-    $cycle_day->setSelected($this->getCurrentValue('cycle_day', $rcontribution));
 
     $this->addDate(
       'start_date',
@@ -229,7 +172,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       true,
       array('class' => 'crm-select2')
     );
-    $contribution_status_id->setSelected($this->getCurrentValue('contribution_status_id', $rcontribution));
 
     // DATA
     $this->add(
@@ -257,14 +199,13 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       false
     );
 
+    // store the ID too
     $this->add('text', 'rcontribution_id', '', array('value' => $rcontribution_id, 'hidden'=>1), true);
-
-
 
     $this->addButtons(array(
       array(
         'type' => 'submit',
-        'name' => ts('Save'),
+        'name' => E::ts('Save'),
         'isDefault' => TRUE,
       ),
     ));
@@ -275,6 +216,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
   public function postProcess() {
     $values = $this->exportValues();
+    CRM_Rcont_Form_Settings::storeLastSubmit($values);
 
     if (Civi::settings()->get('rcont_remember_values')) {
       // store last selection (per user)
@@ -326,15 +268,25 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
     $result = civicrm_api3('ContributionRecur', 'create', $rcontribution);
     if (empty($rcontribution['id'])) {
-      CRM_Core_Session::setStatus(ts('Recurring contribution [%1] created.', array(1 => $result['id'])), ts("Success"), "info");
+      CRM_Core_Session::setStatus(E::ts('Recurring contribution [%1] created.', array(1 => $result['id'])), E::ts("Success"), "info");
     } else {
-      CRM_Core_Session::setStatus(ts('Recurring contribution [%1] updated.', array(1 => $result['id'])), ts("Success"), "info");
+      CRM_Core_Session::setStatus(E::ts('Recurring contribution [%1] updated.', array(1 => $result['id'])), E::ts("Success"), "info");
     }
 
-    // $contact_url = CRM_Utils_System::url('civicrm/contact/view', "reset=1&cid={$rcontribution['contact_id']}&selectedChild=contribute");
-    // CRM_Utils_System::redirect($contact_url);
-
     parent::postProcess();
+  }
+
+/**
+ * Set the default values based on an existing contribution
+ *
+ * @param $recurring_contribution array
+ *   data of the existing contribution
+ */
+  public function setExistingDefaults($recurring_contribution) {
+    $this->setDefaults($recurring_contribution);
+    $this->setDefaults([
+        'frequency' => "{$recurring_contribution['frequency_interval']}-{$recurring_contribution['frequency_unit']}"
+    ]);
   }
 
   /**
@@ -368,25 +320,5 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     } else {
       return date('m/d/Y', strtotime($date));
     }
-  }
-
-  /**
-   * Get the list of id -> label paymentinstruments
-   * This excludes CiviSEPA PIs
-   */
-  protected function getEligiblePaymentInstruments($current_payment_instrument) {
-    if ($this->_eligiblePaymentInstruments === NULL) {
-      $query = civicrm_api3('OptionValue', 'get', array(
-          'option_group_id' => 'payment_instrument',
-          'name'            => ['NOT IN' => ['RCUR', 'FRST', 'OOFF']],
-          'return'          => 'value,label,is_active'));
-      $this->_eligiblePaymentInstruments = array();
-      foreach ($query['values'] as $pi) {
-        if ($pi['is_active'] || $pi['value'] == $current_payment_instrument) {
-          $this->_eligiblePaymentInstruments[$pi['value']] = $pi['label'];
-        }
-      }
-    }
-    return $this->_eligiblePaymentInstruments;
   }
 }

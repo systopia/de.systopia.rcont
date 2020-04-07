@@ -4,6 +4,15 @@
     <path>civicrm/rcont/edit</path>
     <page_callback>CRM_Rcont_Form_RecurEdit</page_callback>
     <title>Edit Recurring Contribution</title>
-    <access_arguments>access CiviCRM</access_arguments>
+    <access_arguments>edit contributions</access_arguments>
+  </item>
+  <item>
+    <path>civicrm/admin/setting/rcont</path>
+    <page_callback>CRM_Rcont_Form_Settings</page_callback>
+    <title>Recurring Contribution Editor Settings</title>
+    <access_arguments>administer CiviCRM</access_arguments>
+    <adminGroup>CiviContribute</adminGroup>
+    <icon>admin/small/online_contribution_pages.png</icon>
+    <weight>100</weight>
   </item>
 </menu>

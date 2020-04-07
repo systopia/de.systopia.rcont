@@ -1,6 +1,6 @@
 <?php
 /*-------------------------------------------------------+
-| de.systopia.rcont - Analyse Recurring Contributions    |
+| de.systopia.rcont - Recurring Contribution Tools       |
 | Copyright (C) 2016-2018 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
