@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Recurring Contribution Tools       |
-| Copyright (C) 2016-2020 SYSTOPIA                       |
+| Copyright (C) 2016-2021 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -27,7 +27,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
   public function buildQuickForm() {
     $rcontribution_id = 0;
-    $contact_id       = 0;
 
     if (!empty($_REQUEST['rcid'])) {
       // EDIT existing contribution recur
@@ -104,7 +103,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $frequency = $this->add(
+    $this->add(
       'select',
       'frequency',
       E::ts('Frequency'),
@@ -113,7 +112,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $campaign_id = $this->add(
+    $this->add(
       'select',
       'campaign_id',
       E::ts('Campaign'),
@@ -122,7 +121,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $payment_instrument_id = $this->add(
+    $this->add(
       'select',
       'payment_instrument_id',
       E::ts('Payment Instrument'),
@@ -131,7 +130,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $financial_type_id = $this->add(
+    $this->add(
       'select',
       'financial_type_id',
       E::ts('Financial Type'),
@@ -141,7 +140,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     );
 
     // DATES
-    $cycle_day = $this->add(
+    $this->add(
       'select',
       'cycle_day',
       E::ts('Collection Day'),
@@ -150,21 +149,21 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $this->addDate(
-      'start_date',
-      'Begins',
-      true,
-      array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('start_date', $rcontribution))
-      );
+    $this->add(
+        'datepicker',
+        'start_date',
+        E::ts('Begins'),
+        ['formatType' => 'activityDateTime']
+    );
 
-    $this->addDate(
-      'end_date',
-      'Ends',
-      false,
-      array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('end_date', $rcontribution))
-      );
+    $this->add(
+        'datepicker',
+        'end_date',
+        E::ts('Ends'),
+        ['formatType' => 'activityDateTime']
+    );
 
-    $contribution_status_id = $this->add(
+    $this->add(
       'select',
       'contribution_status_id',
       'Status',
@@ -199,16 +198,37 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       false
     );
 
-    // store the ID too
-    $this->add('text', 'rcontribution_id', '', array('value' => $rcontribution_id, 'hidden'=>1), true);
+    $this->setDefaults([
+      'amount' => $this->getCurrentValue('amount', $rcontribution),
+      'currency' => $this->getCurrentValue('currency', $rcontribution),
+      'frequency' => $this->getCurrentValue('frequency', $rcontribution),
+      'campaign_id' => $this->getCurrentValue('campaign_id', $rcontribution),
+      'payment_instrument_id' => $this->getCurrentValue('payment_instrument_id', $rcontribution),
+      'financial_type_id' => $this->getCurrentValue('financial_type_id', $rcontribution),
+      'cycle_day' => $this->getCurrentValue('cycle_day', $rcontribution),
+      'start_date' => $this->getCurrentValue('start_date', $rcontribution),
+      'end_date' => $this->getCurrentValue('end_date', $rcontribution),
+      'contribution_status_id' => $this->getCurrentValue('contribution_status_id', $rcontribution),
+      'invoice_id' => $this->getCurrentValue('invoice_id', $rcontribution),
+      'trxn_id' => $this->getCurrentValue('trxn_id', $rcontribution),
+    ]);
 
-    $this->addButtons(array(
-      array(
+    // store the ID too
+    $this->add(
+        'text',
+        'rcontribution_id',
+        '',
+        ['value' => $rcontribution_id, 'hidden'=>1],
+        true
+    );
+
+    $this->addButtons([
+      [
         'type' => 'submit',
         'name' => E::ts('Save'),
         'isDefault' => TRUE,
-      ),
-    ));
+      ]
+    ]);
 
     parent::buildQuickForm();
   }
@@ -320,5 +340,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     } else {
       return date('m/d/Y', strtotime($date));
     }
+  }
+
+  /**
+   * Pre-processing for the form.
+   *
+   * @throws \Exception
+   */
+  public function preProcess()
+  {
+    $this->setAction(CRM_Core_Action::UPDATE);
+    CRM_Utils_System::setTitle(ts('Update Recurring Contribution'));
   }
 }
