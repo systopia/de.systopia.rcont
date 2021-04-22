@@ -217,7 +217,11 @@ class CRM_Rcont_Form_Settings extends CRM_Core_Form
                     $defaults[$key] = CRM_Utils_Array::value($key, $last_submit_individual, '');
                     break;
 
-                default:
+                case '_empty_':
+                  $defaults[$key] = '';
+                  break;
+
+              default:
                     $defaults[$key] = $value;
                     break;
             }

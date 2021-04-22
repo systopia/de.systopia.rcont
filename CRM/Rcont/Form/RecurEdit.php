@@ -198,21 +198,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       false
     );
 
-    $this->setDefaults([
-      'amount' => $this->getCurrentValue('amount', $rcontribution),
-      'currency' => $this->getCurrentValue('currency', $rcontribution),
-      'frequency' => $this->getCurrentValue('frequency', $rcontribution),
-      'campaign_id' => $this->getCurrentValue('campaign_id', $rcontribution),
-      'payment_instrument_id' => $this->getCurrentValue('payment_instrument_id', $rcontribution),
-      'financial_type_id' => $this->getCurrentValue('financial_type_id', $rcontribution),
-      'cycle_day' => $this->getCurrentValue('cycle_day', $rcontribution),
-      'start_date' => $this->getCurrentValue('start_date', $rcontribution),
-      'end_date' => $this->getCurrentValue('end_date', $rcontribution),
-      'contribution_status_id' => $this->getCurrentValue('contribution_status_id', $rcontribution),
-      'invoice_id' => $this->getCurrentValue('invoice_id', $rcontribution),
-      'trxn_id' => $this->getCurrentValue('trxn_id', $rcontribution),
-    ]);
-
     // store the ID too
     $this->add(
         'text',
