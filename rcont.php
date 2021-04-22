@@ -15,6 +15,7 @@
 +--------------------------------------------------------*/
 
 require_once 'rcont.civix.php';
+use CRM_Rcont_ExtensionUtil as E;
 
 /**
  * Implements hook_civicrm_config().
@@ -144,13 +145,23 @@ function rcont_civicrm_alterSettingsFolders(&$metaDataFolders = NULL) {
  */
 function rcont_civicrm_links( $op, $objectName, $objectId, &$links, &$mask, &$values ) {
   if ($op == 'contribution.selector.recurring') {
-    foreach ($links as $key => &$link) {
-      if ($link['name'] == 'Edit') {
-        $link['url'] = 'civicrm/rcont/edit';
-        $link['qs'] = 'reset=1&rcid=%%crid%%';
-        // $link['class'] = 'no-popup';
+    // remove unwanted links
+    foreach (['civicrm/contribute/updaterecur'] as $url_partial) {
+      foreach (array_keys($links) as $key) {
+        $link = $links[$key];
+        if (strstr($link['url'], $url_partial)) {
+          unset($links[$key]);
+          break;
+        }
       }
     }
+
+    // add our own link
+    $links[] = [
+      'name' => E::ts('Edit'),
+      'url'  => 'civicrm/rcont/edit',
+      'qs'   => 'reset=1&rcid=%%crid%%',
+    ];
   }
 }
 
@@ -167,16 +178,16 @@ function rcont_civicrm_pageRun(&$page) {
 }
 
 /**
- * put a new rcontribtion action in summary action list
+ * put a new create recurring contribution action in summary action list
  */
 function rcont_civicrm_summaryActions( &$actions, $contactID ) {
-  $actions['add_rcontribution'] = array(
-      'title'           => ts("Add Recurring Contribution"),
+  $actions['add_rcontribution'] = [
+      'title'           => E::ts("Add Recurring Contribution"),
       'weight'          => 5,
       'ref'             => 'add-recurring-contribution',
       'key'             => 'add_rcontribution',
       'component'       => 'CiviContribute',
-      'href'            => CRM_Utils_System::url('civicrm/rcont/edit', "cid=$contactID"),
-      'permissions'     => array('access CiviContribute', 'edit contributions')
-    );
+      'href'            => CRM_Utils_System::url('civicrm/rcont/edit', "reset=1"), // cid will be added automatically
+      'permissions'     => ['access CiviContribute', 'edit contributions']
+    ];
 }

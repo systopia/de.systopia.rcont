@@ -1,7 +1,7 @@
 <?php
 /*-------------------------------------------------------+
 | de.systopia.rcont - Recurring Contribution Tools       |
-| Copyright (C) 2016-2020 SYSTOPIA                       |
+| Copyright (C) 2016-2021 SYSTOPIA                       |
 | Author: B. Endres (endres@systopia.de)                 |
 | http://www.systopia.de/                                |
 +--------------------------------------------------------+
@@ -27,7 +27,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
 
   public function buildQuickForm() {
     $rcontribution_id = 0;
-    $contact_id       = 0;
 
     if (!empty($_REQUEST['rcid'])) {
       // EDIT existing contribution recur
@@ -40,19 +39,18 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       $rcontribution_id = (int) $this->_submitValues['rcontribution_id'];
       $rcontribution = civicrm_api3('ContributionRecur', 'getsingle', array('id' => $rcontribution_id));
       $contact_id = $rcontribution['contact_id'];
-      $contact_id = $rcontribution['contact_id'];
         $this->setExistingDefaults($rcontribution);
 
     } elseif (!empty($_REQUEST['cid'])) {
       $contact_id = (int) $_REQUEST['cid'];
       $rcontribution = array('contact_id' => $contact_id);
-      CRM_Utils_System::setTitle('Create Recurring Contribution');
+      CRM_Utils_System::setTitle(E::ts('Create Recurring Contribution'));
       $this->setDefaults(CRM_Rcont_Form_Settings::getRecurringDefaults());
 
     } elseif (!empty($this->_submitValues['contact_id'])) {
       $contact_id = (int) $this->_submitValues['contact_id'];
       $rcontribution = array('contact_id' => $contact_id);
-      CRM_Utils_System::setTitle('Create Recurring Contribution');
+      CRM_Utils_System::setTitle(E::ts('Create Recurring Contribution'));
       $this->setDefaults(CRM_Rcont_Form_Settings::getRecurringDefaults());
 
     } else {
@@ -104,7 +102,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $frequency = $this->add(
+    $this->add(
       'select',
       'frequency',
       E::ts('Frequency'),
@@ -113,7 +111,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $campaign_id = $this->add(
+    $this->add(
       'select',
       'campaign_id',
       E::ts('Campaign'),
@@ -122,7 +120,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $payment_instrument_id = $this->add(
+    $this->add(
       'select',
       'payment_instrument_id',
       E::ts('Payment Instrument'),
@@ -131,7 +129,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $financial_type_id = $this->add(
+    $this->add(
       'select',
       'financial_type_id',
       E::ts('Financial Type'),
@@ -141,7 +139,7 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     );
 
     // DATES
-    $cycle_day = $this->add(
+    $this->add(
       'select',
       'cycle_day',
       E::ts('Collection Day'),
@@ -150,21 +148,21 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       array('class' => 'crm-select2')
     );
 
-    $this->addDate(
-      'start_date',
-      'Begins',
-      true,
-      array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('start_date', $rcontribution))
-      );
+    $this->add(
+        'datepicker',
+        'start_date',
+        E::ts('Begins'),
+        ['formatType' => 'activityDateTime']
+    );
 
-    $this->addDate(
-      'end_date',
-      'Ends',
-      false,
-      array('formatType' => 'searchDate', 'value' => $this->getCurrentDate('end_date', $rcontribution))
-      );
+    $this->add(
+        'datepicker',
+        'end_date',
+        E::ts('Ends'),
+        ['formatType' => 'activityDateTime']
+    );
 
-    $contribution_status_id = $this->add(
+    $this->add(
       'select',
       'contribution_status_id',
       'Status',
@@ -200,15 +198,21 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     );
 
     // store the ID too
-    $this->add('text', 'rcontribution_id', '', array('value' => $rcontribution_id, 'hidden'=>1), true);
+    $this->add(
+        'text',
+        'rcontribution_id',
+        '',
+        ['value' => $rcontribution_id, 'hidden'=>1],
+        true
+    );
 
-    $this->addButtons(array(
-      array(
+    $this->addButtons([
+      [
         'type' => 'submit',
         'name' => E::ts('Save'),
         'isDefault' => TRUE,
-      ),
-    ));
+      ]
+    ]);
 
     parent::buildQuickForm();
   }
@@ -217,17 +221,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
   public function postProcess() {
     $values = $this->exportValues();
     CRM_Rcont_Form_Settings::storeLastSubmit($values);
-
-    if (Civi::settings()->get('rcont_remember_values')) {
-      // store last selection (per user)
-      $session = CRM_Core_Session::singleton();
-      $user_contact = (int) $session->get('userID');
-      CRM_Core_BAO_Setting::setItem($values['campaign_id'],            'de.systopia.rcont', 'last_campaign_id', NULL, $user_contact);
-      CRM_Core_BAO_Setting::setItem($values['cycle_day'],              'de.systopia.rcont', 'last_cycle_day', NULL, $user_contact);
-      CRM_Core_BAO_Setting::setItem($values['financial_type_id'],      'de.systopia.rcont', 'last_financial_type_id', NULL, $user_contact);
-      CRM_Core_BAO_Setting::setItem($values['frequency'],              'de.systopia.rcont', 'last_frequency', NULL, $user_contact);
-      CRM_Core_BAO_Setting::setItem($values['contribution_status_id'], 'de.systopia.rcont', 'last_contribution_status_id', NULL, $user_contact);
-    }
 
     // compile contribution object with required values
     $rcontribution = array(
@@ -299,10 +292,6 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
       return CRM_Utils_array::value($key, $this->_submitValues);
     } elseif (CRM_Utils_Array::value($key, $rcontribution)) {
       return CRM_Utils_Array::value($key, $rcontribution);
-    } elseif (Civi::settings()->get('rcont_remember_values')) {
-      $session = CRM_Core_Session::singleton();
-      $user_contact = (int) $session->get('userID');
-      return CRM_Core_BAO_Setting::getItem('de.systopia.rcont', "last_$key", NULL, NULL, $user_contact);
     } else {
       // custom form field defaults can be configured via rcont_default_field_name settings
       return Civi::settings()->get("rcont_default_{$key}");
@@ -320,5 +309,16 @@ class CRM_Rcont_Form_RecurEdit extends CRM_Core_Form {
     } else {
       return date('m/d/Y', strtotime($date));
     }
+  }
+
+  /**
+   * Pre-processing for the form.
+   *
+   * @throws \Exception
+   */
+  public function preProcess()
+  {
+    $this->setAction(CRM_Core_Action::UPDATE);
+    CRM_Utils_System::setTitle(E::ts('Update Recurring Contribution'));
   }
 }

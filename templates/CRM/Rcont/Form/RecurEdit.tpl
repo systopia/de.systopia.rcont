@@ -52,11 +52,11 @@
     </tr>
     <tr class="crm-rcontribution-form-block-start_date">
       <td class="label">{$form.start_date.label}</td>
-      <td>{include file="CRM/common/jcalendar.tpl" elementName=start_date}</td>
+      <td class="content">{$form.start_date.html}</td>
     </tr>
     <tr class="crm-rcontribution-form-block-end_date">
       <td class="label">{$form.end_date.label}</td>
-      <td class="content">{include file="CRM/common/jcalendar.tpl" elementName=end_date}</td>
+      <td class="content">{$form.end_date.html}</td>
     </tr>
     <tr class="crm-rcontribution-form-block-invoice_id">
       <td class="label">{$form.invoice_id.label}</td>
