@@ -1,0 +1,157 @@
+# Copyright CiviCRM LLC (c) 2004-2015
+# This file is distributed under the same license as the CiviCRM package.
+# If you contribute heavily to a translation and deem your work copyrightable,
+# make sure you license it to CiviCRM LLC under Academic Free License 3.0.
+msgid ""
+msgstr ""
+"Project-Id-Version: de.systopia.rcont\n"
+"POT-Creation-Date: 2021-04-22 12:50+0200\n"
+"Language-Team: CiviCRM Translators <civicrm-translators@lists.civicrm.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"PO-Revision-Date: \n"
+"X-Generator: Poedit 2.0.6\n"
+"Last-Translator: \n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"Language: de_DE\n"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Create Recurring Contribution"
+msgstr "Wiederkehrende Zuwendung Anlegen"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Amount"
+msgstr "Betrag"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Currency"
+msgstr "Währung"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Frequency"
+msgstr "Rhythmus"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Campaign"
+msgstr "Kampagne"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Payment Instrument"
+msgstr "Zahlungsart"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Financial Type"
+msgstr "Zuwendungsart"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Collection Day"
+msgstr "Fälligkeitstag"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Begins"
+msgstr "Beginnt"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Ends"
+msgstr "Endet"
+
+#: CRM/Rcont/Form/RecurEdit.php CRM/Rcont/Form/Settings.php
+msgid "Save"
+msgstr "Speichern"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Recurring contribution [%1] created."
+msgstr "Wiederkehrende Zuwendung [%1] erstellt."
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Success"
+msgstr "Erfolgreich"
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Recurring contribution [%1] updated."
+msgstr "Wiederkehrende Zuwendung [%1] aktualisiert."
+
+#: CRM/Rcont/Form/RecurEdit.php
+msgid "Update Recurring Contribution"
+msgstr "Wiederkehrende Zuwendung Bearbeiten"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "Status"
+msgstr "Status"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "leave empty"
+msgstr "leer lassen"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "Last Value Used in Form"
+msgstr "zuletzt verwendeter Wert"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "Last Value Used by You"
+msgstr "zuletzt von mir verwendeter Wert"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "always '%1'"
+msgstr "immer '%1'"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "- none -"
+msgstr "- keiner -"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "(may cause problems)"
+msgstr "(kann Probleme verursachen)"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "monthly"
+msgstr "monatlich"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "bi-monthly"
+msgstr "alle 2 Monate"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "quartely"
+msgstr "quartalsweise"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "trimestral"
+msgstr "alle 3 Monate"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "semi-anually"
+msgstr "halbjährlich"
+
+#: CRM/Rcont/Form/Settings.php
+msgid "anually"
+msgstr "jährlich"
+
+#: CRM/Rcont/Upgrader/Base.php
+msgid "Upgrade %1 to revision %2"
+msgstr ""
+
+#: CRM/Rcont/Upgrader.php
+msgid ""
+"The Recurring contribution extension has new configuration. Please visit <a "
+"href=\"%1\">THE SETTINGS PAGE</a> to configure it."
+msgstr ""
+"Die \"Recurring Contribution Extension\" hat eine neue Konfiguration. Bitte "
+"die Konfiguration auf <a href=\"%1\">IN DER KONFIGURATION</a> anpassen."
+
+#: CRM/Rcont/Upgrader.php
+msgid "Please Configure"
+msgstr "Bitte Konfigurieren"
+
+#: rcont.php
+msgid "Edit"
+msgstr "Bearbeiten"
+
+#: rcont.php
+msgid "Add Recurring Contribution"
+msgstr "Neue wiederkehrende Zuwendung"
+
+#: templates/CRM/Rcont/Form/Settings.tpl
+msgid "Create Default Values"
+msgstr "Voreinstellungen für neue wiederkehrende Zuwendungen"
