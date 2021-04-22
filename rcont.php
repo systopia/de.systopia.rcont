@@ -178,16 +178,16 @@ function rcont_civicrm_pageRun(&$page) {
 }
 
 /**
- * put a new rcontribtion action in summary action list
+ * put a new create recurring contribution action in summary action list
  */
 function rcont_civicrm_summaryActions( &$actions, $contactID ) {
-  $actions['add_rcontribution'] = array(
-      'title'           => ts("Add Recurring Contribution"),
+  $actions['add_rcontribution'] = [
+      'title'           => E::ts("Add Recurring Contribution"),
       'weight'          => 5,
       'ref'             => 'add-recurring-contribution',
       'key'             => 'add_rcontribution',
       'component'       => 'CiviContribute',
-      'href'            => CRM_Utils_System::url('civicrm/rcont/edit', "cid=$contactID"),
-      'permissions'     => array('access CiviContribute', 'edit contributions')
-    );
+      'href'            => CRM_Utils_System::url('civicrm/rcont/edit', "reset=1"), // cid will be added automatically
+      'permissions'     => ['access CiviContribute', 'edit contributions']
+    ];
 }
