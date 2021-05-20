@@ -218,7 +218,7 @@ class CRM_Rcont_Analyser {
     $last_sequence_start = date('Y-m-d', strtotime("-$horizon"));
     $interval_conditions = array();
     foreach ($params['intervals'] as $interval) {
-      list($cycle, $unit) = split(' ', $interval);
+      list($cycle, $unit) = explode(' ', $interval);
       $interval_conditions[] = "(`frequency_unit` = '$unit' AND `frequency_interval` = $cycle)";
     }
     $interval_sql = implode(' OR ', $interval_conditions);
