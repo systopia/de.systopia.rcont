@@ -71,7 +71,7 @@ class CRM_Rcont_Sequence {
    * check if the given contribution matches the
    * sequence.
    *
-   * @return intervals (usually 1, but more if skip allowed). FALSE if it doesn't match
+   * @return boolean|integer intervals (usually 1, but more if skip allowed). FALSE if it doesn't match
    */
   public function matches($contribution) {
     // first: without receive date there's nothing we can do

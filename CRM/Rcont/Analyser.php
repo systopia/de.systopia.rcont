@@ -15,7 +15,7 @@
 +--------------------------------------------------------*/
 
 /**
- * Analyses contribtions and recurring contributions
+ * Analyses contributions and recurring contributions
  */
 class CRM_Rcont_Analyser {
   public static $contribution_fields  = array(
@@ -49,10 +49,12 @@ class CRM_Rcont_Analyser {
       $params['horizon'] = '5 year';
     }
 
+    // intervals need to comply
     if (empty($params['intervals'])) {
       // THESE HAVE TO BE IN INCREASING ORDER
       $params['intervals'] = array('1 month', '3 month', '6 month', '1 year');
     }
+
 
     if (empty($params['installments'])) {
       $params['installments'] = 5;
@@ -76,7 +78,7 @@ class CRM_Rcont_Analyser {
 
 
 
-    // calculat recurring contributions
+    // calculate recurring contributions
     $extracted_contributions = CRM_Rcont_Analyser::extractRecurringContributions($contact_id, $params);
     // error_log("CALCULATED: ".print_r($extracted_contributions,1));
 
@@ -189,7 +191,7 @@ class CRM_Rcont_Analyser {
         }
       }
 
-      // error_log("Squences: " . count($sequences));
+      // error_log("Sequences: " . count($sequences));
       foreach ($sequences as $sequence) {
         if ($sequence->isSequence($params['installments'])) {
           // if this is a real recurring contribution, record it

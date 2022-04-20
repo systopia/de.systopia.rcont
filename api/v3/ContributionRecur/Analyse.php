@@ -20,6 +20,17 @@ function civicrm_api3_contribution_recur_analyse($params) {
     CRM_Core_BAO_Setting::setItem(0, 'de.systopia.rcont', 'bulk_last_contact_id');
   }
 
+  // preprocess 'interval' parameter
+  if (isset($params['intervals'])) {
+    if (!is_array($params['intervals'])) {
+      $params['intervals'] = explode(',', $params['intervals']);
+    }
+    // trim
+    foreach ($params['intervals'] as &$interval) {
+      $interval = trim($interval);
+    }
+  }
+
   if (!empty($params['contact_id'])) {
     // analyse one single contact
     $recurring_contributions = CRM_Rcont_Analyser::evaluateContactRcur($params['contact_id'], $params);
@@ -55,7 +66,7 @@ function civicrm_api3_contribution_recur_analyse($params) {
  * API specs for ContributionRecur:analyse
  */
 function _civicrm_api3_contribution_recur_analyse_spec(&$params) {
-  // bulk-analyse a set of contacts, <buik_count> at once, keeping track of the last you did
+  // bulk-analyse a set of contacts, <bulk_count> at once, keeping track of the last you did
   $params['bulk_count'] =  array('api.required' => 0);
 
   // reset the last visited ID
