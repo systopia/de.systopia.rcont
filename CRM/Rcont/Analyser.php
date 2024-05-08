@@ -86,7 +86,7 @@ class CRM_Rcont_Analyser {
     $existing_contributions = CRM_Rcont_Analyser::currentRecurringContributions($contact_id, $params);
     // error_log("ACTUAL: ".print_r($existing_contributions,1));
 
-    // match extracted with existing contribtions
+    // match extracted with existing contributions
     $changes = CRM_Rcont_Analyser::matchRecurringContributions($existing_contributions, $extracted_contributions);
     // error_log("PROPOSED CHANGES: ".print_r($changes,1));
 
@@ -173,6 +173,7 @@ class CRM_Rcont_Analyser {
         // sort into sequences
         $cycles = 0;
         foreach ($sequences as $sequence) {
+          /** @var CRM_Rcont_Sequence $sequence  */
           if ($cycles = $sequence->matches($contribution)) {
             if ($cycles > 1) {
               error_log("Skip $cycles detected!");

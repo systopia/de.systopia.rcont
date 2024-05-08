@@ -121,8 +121,8 @@ class CRM_Rcont_Sequence {
    * add a contribution to the sequence
    * the contribution should have previously been checked with the matches() method
    *
-   * @param $contribution the contribtuion to add
-   * @param $intervals    the intervals after the current end (usually 1, but more when skips occur)
+   * @param $contribution array the contribution to add
+   * @param $intervals    array the intervals after the current end (usually 1, but more when skips occur)
    */
   public function add($contribution, $intervals = 1) {
     // update cycle day stats
@@ -139,7 +139,7 @@ class CRM_Rcont_Sequence {
   }
 
   /**
-   * calculate the previous receive date in the sequence
+   * calculate the previous receive_date in the sequence
    */
   public function expectedReceiveDate($intervals = 1) {
     $last_contribution = end($this->contribution_sequence);
